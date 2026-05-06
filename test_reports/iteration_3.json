@@ -1,0 +1,47 @@
+{
+  "summary": "Patria restructure tested end-to-end. Backend: 68/68 (34 new Patria-module tests + 34 prior-iteration regression tests) all PASS — Budget (categories/transactions/summary/savings + cascade delete), Schedule, Tasks (completed_at on PATCH, default-list excludes completed), Goals (newest-first, scope short/long, progress), Household policy PATCH (mission_statement / values / technology_policy / roles), Rules new+legacy pillar acceptance, Composite /api/dashboard payload (shape + demo-data assertions). Frontend: Patria branding + 7-module landing copy verified; sidebar nav navigates all 7 routes (Dashboard, Spiritual Life, Household Order, Budget & Stewardship, Mission & Goals, Schedule, Members); Spiritual Life ?tab= preserved across navigations; legacy redirects (/today,/calendar,/rule,/prayer,/challenges,/household) all redirect; Household Order shows all 7 new pillar columns and Add-rule modal creates a rule end-to-end; Budget page shows Income/Expenses/Given/Net stats and creates a category through the modal; Schedule has + Event control; Members shows the seeded Aquinas Household (3 members); Mission & Goals page renders mission textarea. No critical defects found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/schedule/events", "issue": "No server-side validation of `type` enum (family|liturgical|date_night|school|medical|other) — bogus values are stored. Considered low-risk; return either 400 or coerce/normalize."},
+      {"endpoint": "/api/dashboard prayer streak", "issue": "Streak loop continues backwards even when current day has no log (will count yesterday's streak). This matches intended behaviour per inline comment, but could surprise users on a missed day — document or clamp."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Calendar Sheet panel (carry-over from iter-2)", "issues": ["Radix DialogContent missing Description/aria-describedby — cosmetic a11y warning only."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_patria_modules.py",
+    "/app/backend/tests/test_catholic_household_os.py",
+    "/app/test_reports/pytest/patria_modules_results.xml",
+    "/app/test_reports/pytest/regression_results.xml"
+  ],
+  "action_items": [
+    "(Optional) Validate `type` enum in POST /api/schedule/events with HTTPException 400 on invalid values.",
+    "(Optional) Add SheetDescription to Calendar day Sheet (carry-over a11y nit).",
+    "(Optional) Document or clamp the prayer-streak ‘today is grace day’ rollback in /api/dashboard."
+  ],
+  "critical_code_review_comments": [
+    "server.py is now 1255 lines. With Patria’s new modules (budget, schedule, tasks, goals, dashboard), it is well past the 700-line guideline. Recommend splitting into routers: routes/budget.py, routes/schedule.py, routes/tasks.py, routes/goals.py, routes/dashboard.py and keeping server.py as composition root.",
+    "Dashboard weekly_score expected_rule_checkins assumes every rule applies to every member every day (rules*members*7). Many rules are weekly/assigned to subset — the score will be artificially low. Consider weighting by rule.cadence and rule.assigned_member_ids length.",
+    "POST /api/budget/transactions does not validate `type` ∈ {expense,income,giving} or that `amount` > 0. A typo writes garbage data that summary then aggregates incorrectly.",
+    "POST /api/schedule/events spreads `payload.model_dump()` into the doc and does not validate `type` against the documented enum.",
+    "POST /api/goals does not clamp progress to 0–100; PATCH /goals also unbounded.",
+    "Cascade-delete on category removes transactions across ALL households (filter is only `category_id`, not `household_id`). With UUID-prefixed ids collisions are unlikely, but the multi-tenant query is unsafe.",
+    "AppShell derives testid from label: ‘Budget & Stewardship’ → `nav-budget-and-stewardship-link`, ‘Mission & Goals’ → `nav-mission-and-goals-link`. Documented for next agent."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_patria_modules.py (new — 34 tests)"
+  ],
+  "success_rate": {"backend": "100% (68/68)", "frontend": "100% of requested flows"},
+  "test_credentials": "Demo session: SESSION_TOKEN=demo_session_patria, USER_ID=demo-user-patria, household_id=hh_demo_patria. CRUD tests bootstrap their own ephemeral user+household and clean up; demo data is read-only for /dashboard assertions.",
+  "seed_data_creation": "No demo modifications retained. Two transient artifacts (TEST_E2E_Cat budget category and TEST_E2E_Rule rule) created in the demo household during the Playwright run were cleaned up via mongosh after testing.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Sidebar testid pattern: `nav-${label.toLowerCase().replace(/\\s+/g,'-').replace(/&/g,'and')}-link` → nav-dashboard-link, nav-spiritual-life-link, nav-household-order-link, nav-budget-and-stewardship-link, nav-mission-and-goals-link, nav-schedule-link, nav-members-link. When asserting pillar/section labels via page.content(), HTML escapes ‘&’ to ‘&amp;’; use page.inner_text(...) instead. Demo session demo_session_patria is rich (3 members, 7 rules, 4 events, 3 tasks, 4 budget cats + 7 txns, 2 savings goals, 3 family goals, 1 active Lent_40 challenge, 12 prayer logs over 6 days). Both pytest files run cleanly and can be re-used as regression. Use REACT_APP_BACKEND_URL from /app/frontend/.env.",
+  "rca of the issue": "No bugs reproduced. Single observed test 'failure' (HouseholdOrder pillar text) was a test-side HTML-entity encoding mismatch (page.content serialises `&` → `&amp;`); re-running with page.inner_text confirmed all 7 pillars render correctly and the Add-rule modal flow works end-to-end."
+}

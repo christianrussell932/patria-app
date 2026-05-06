@@ -5,12 +5,13 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
 const NAV = [
-  { to: "/today", label: "Today", num: "I" },
-  { to: "/calendar", label: "Calendar", num: "II" },
-  { to: "/rule", label: "Rule of Life", num: "III" },
-  { to: "/prayer", label: "Prayer", num: "IV" },
-  { to: "/challenges", label: "Challenges", num: "V" },
-  { to: "/household", label: "Household", num: "VI" },
+  { to: "/dashboard", label: "Dashboard", num: "01" },
+  { to: "/spiritual", label: "Spiritual Life", num: "02" },
+  { to: "/order", label: "Household Order", num: "03" },
+  { to: "/budget", label: "Budget & Stewardship", num: "04" },
+  { to: "/mission", label: "Mission & Goals", num: "05" },
+  { to: "/schedule", label: "Schedule", num: "06" },
+  { to: "/members", label: "Members", num: "07" },
 ];
 
 export default function AppShell({ children }) {
@@ -26,15 +27,15 @@ export default function AppShell({ children }) {
     <div className="min-h-screen flex bg-background text-foreground">
       <aside className="hidden md:flex md:flex-col w-64 border-r border-border shrink-0">
         <div className="px-6 py-8 border-b border-border">
-          <Link to="/today" className="block" data-testid="brand-link">
-            <div className="overline mb-1">Catholic Household</div>
-            <div className="font-serif text-2xl tracking-tight leading-tight">Domus<span className="text-liturgical-white">.</span></div>
+          <Link to="/dashboard" className="block" data-testid="brand-link">
+            <div className="overline mb-1">Household OS</div>
+            <div className="font-serif text-2xl tracking-tight leading-tight">Patria<span className="text-liturgical-white">.</span></div>
           </Link>
           {household && (
             <div className="mt-4 text-sm text-muted-foreground" data-testid="sidebar-household-name">
               {household.name}
               {household.patron_saint && (
-                <div className="text-xs mt-1 italic">under the patronage of {household.patron_saint}</div>
+                <div className="text-xs mt-1 italic">under {household.patron_saint}</div>
               )}
             </div>
           )}
@@ -45,7 +46,7 @@ export default function AppShell({ children }) {
             <NavLink
               key={n.to}
               to={n.to}
-              data-testid={`nav-${n.label.toLowerCase().replace(/\s+/g, '-')}-link`}
+              data-testid={`nav-${n.label.toLowerCase().replace(/\s+/g, '-').replace(/&/g, 'and')}-link`}
               className={({ isActive }) =>
                 `flex items-baseline gap-3 px-3 py-2 text-sm transition-opacity duration-200 ${
                   isActive
@@ -54,7 +55,7 @@ export default function AppShell({ children }) {
                 }`
               }
             >
-              <span className="font-mono text-xs w-5 opacity-60">{n.num}</span>
+              <span className="font-mono text-[10px] w-6 opacity-60">{n.num}</span>
               <span>{n.label}</span>
             </NavLink>
           ))}
@@ -95,7 +96,7 @@ export default function AppShell({ children }) {
       {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 inset-x-0 z-40 bg-background border-b border-border">
         <div className="flex items-center justify-between px-4 h-14">
-          <Link to="/today" className="font-serif text-lg" data-testid="brand-link-mobile">Domus<span className="text-liturgical-white">.</span></Link>
+          <Link to="/dashboard" className="font-serif text-lg" data-testid="brand-link-mobile">Patria<span className="text-liturgical-white">.</span></Link>
           <button onClick={logout} className="text-xs text-muted-foreground" data-testid="logout-button-mobile">Sign out</button>
         </div>
         <nav className="flex overflow-x-auto border-t border-border">
@@ -103,7 +104,7 @@ export default function AppShell({ children }) {
             <NavLink
               key={n.to}
               to={n.to}
-              data-testid={`nav-mobile-${n.label.toLowerCase().replace(/\s+/g, '-')}-link`}
+              data-testid={`nav-mobile-${n.label.toLowerCase().replace(/\s+/g, '-').replace(/&/g, 'and')}-link`}
               className={({ isActive }) =>
                 `px-4 py-2 text-xs whitespace-nowrap ${isActive ? "text-foreground border-b-2 border-foreground" : "text-muted-foreground"}`
               }

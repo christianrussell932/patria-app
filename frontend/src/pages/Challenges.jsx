@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { liturgicalDot, liturgicalText, initials, memberTileClass } from "@/lib/liturgical";
 
-export default function Challenges() {
+export default function Challenges({ embedded = false }) {
   const [templates, setTemplates] = useState([]);
   const [active, setActive] = useState([]);
   const [members, setMembers] = useState([]);
@@ -47,9 +47,9 @@ export default function Challenges() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 md:px-12 py-10 md:py-16" data-testid="challenges-page">
-      <header className="border-b border-border pb-6 mb-10">
-        <div className="overline mb-2">Seasons & Challenges</div>
-        <h1 className="font-serif text-4xl md:text-5xl tracking-tighter">Walk an arc together.</h1>
+      <header className={`${embedded ? "" : "border-b border-border"} pb-6 mb-10`}>
+        {!embedded && <div className="overline mb-2">Seasons & Challenges</div>}
+        <h1 className="font-serif text-3xl md:text-4xl tracking-tighter">Walk an arc together.</h1>
       </header>
 
       {/* Active */}

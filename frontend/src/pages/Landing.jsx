@@ -1,9 +1,5 @@
-import { useNavigate } from "react-router-dom";
-
 // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
 export default function Landing() {
-  const navigate = useNavigate();
-
   const beginWithGoogle = () => {
     const redirectUrl = window.location.origin + "/auth/callback";
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
@@ -11,11 +7,10 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Top nav */}
       <header className="border-b border-border">
         <div className="max-w-6xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
           <div className="font-serif text-2xl tracking-tight">
-            Domus<span className="text-liturgical-white">.</span>
+            Patria<span className="text-liturgical-white">.</span>
           </div>
           <button
             onClick={beginWithGoogle}
@@ -35,12 +30,12 @@ export default function Landing() {
             <h1 className="font-serif text-5xl md:text-7xl tracking-tighter leading-[0.95]">
               An operating system <br className="hidden md:block" />
               for the intentional <br className="hidden md:block" />
-              <span className="italic">Catholic household.</span>
+              <span className="italic">Catholic family.</span>
             </h1>
             <p className="mt-8 max-w-xl text-lg text-muted-foreground leading-relaxed">
-              Domus is the digital backbone of family life — a structured rule of life,
-              a shared prayer rhythm, a liturgical calendar that actually shapes your week,
-              and seasons of formation you walk through together.
+              Patria is the executive layer of family life — a household command
+              center for your rule, your budget, your schedule, your formation, and
+              your interior life. Quietly powerful. Deeply intentional.
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-4">
               <button
@@ -51,21 +46,23 @@ export default function Landing() {
                 Begin with Google →
               </button>
               <span className="text-xs text-muted-foreground">
-                Free during the Lenten beta · No credit card
+                Free during the founding-household beta · No credit card
               </span>
             </div>
           </div>
           <div className="md:col-span-4 hidden md:block">
-            <div className="border-l border-border pl-6 space-y-6">
+            <div className="border-l border-border pl-6 space-y-4">
               {[
-                { c: "violet", k: "Advent", d: "Jesse Tree, Gaudete" },
-                { c: "white", k: "Christmas", d: "Octave, Epiphany" },
-                { c: "violet", k: "Lent", d: "40 days, ashes to fire" },
-                { c: "white", k: "Easter", d: "50 days of glory" },
-                { c: "green", k: "Ordinary Time", d: "the long faithful walk" },
+                { num: "01", k: "Dashboard", d: "the command center" },
+                { num: "02", k: "Spiritual Life", d: "rhythm of the soul" },
+                { num: "03", k: "Household Order", d: "rule of the home" },
+                { num: "04", k: "Budget & Stewardship", d: "every dollar accounted" },
+                { num: "05", k: "Mission & Goals", d: "where we are going" },
+                { num: "06", k: "Schedule", d: "the next thirty days" },
+                { num: "07", k: "Members", d: "who walks with us" },
               ].map((s) => (
                 <div key={s.k} className="flex items-baseline gap-3">
-                  <span className={`w-1 h-6 ${`bg-liturgical-${s.c}`}`} />
+                  <span className="font-mono text-[10px] text-muted-foreground w-6">{s.num}</span>
                   <div className="flex-1">
                     <div className="text-sm">{s.k}</div>
                     <div className="text-xs text-muted-foreground">{s.d}</div>
@@ -83,20 +80,20 @@ export default function Landing() {
           <div>
             <div className="overline mb-3">Not another devotional app</div>
             <h2 className="font-serif text-3xl md:text-4xl tracking-tight leading-tight">
-              Most apps give your family content. <br />
-              <span className="italic">Domus gives your family form.</span>
+              Most apps add to your spiritual to-do list. <br />
+              <span className="italic">Patria runs your household.</span>
             </h2>
           </div>
           <div className="space-y-6 text-base leading-relaxed text-muted-foreground">
             <p>
-              You already have a Bible, a missal, and a hundred bookmarked reflections.
-              What you don&rsquo;t have is a structured way to <em>actually live</em> a
-              rule of life with your spouse and children — to know what today asks of
-              your household, who has prayed and who has not, and what season you are
-              walking through together.
+              You already have a Bible, a missal, and a phone full of prayer apps.
+              What you don&rsquo;t have is a structured way to <em>actually run</em> a
+              Catholic family — a single place for the rule, the budget, the calendar,
+              the formation, and the prayer rhythm of the home.
             </p>
             <p className="text-foreground">
-              Domus is the operating layer beneath the spiritual life of your home.
+              Patria is the executive operating system beneath the life of your house.
+              Spiritual disciplines are <em>part</em> of the system — not the entire app.
             </p>
           </div>
         </div>
@@ -105,34 +102,20 @@ export default function Landing() {
       {/* Modules */}
       <section className="border-b border-border">
         <div className="max-w-6xl mx-auto px-6 md:px-10 py-20">
-          <div className="overline mb-10">Four pillars · One household</div>
-          <div className="grid md:grid-cols-2 gap-px bg-border">
+          <div className="overline mb-10">Seven systems · One household</div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border">
             {[
-              {
-                num: "I",
-                title: "Rule of Life",
-                body: "Build your family rule across seven pillars — Prayer, Fasting, Almsgiving, Work, Rest, Formation, Hospitality. Assign by member. Track streaks without shame.",
-              },
-              {
-                num: "II",
-                title: "Shared Prayer Tracker",
-                body: "Log Morning Offering, the Rosary, Divine Mercy, Examen, Lectio. See the household chain — twelve rosaries this week, and whose.",
-              },
-              {
-                num: "III",
-                title: "Liturgical Calendar",
-                body: "The Church&rsquo;s year, beautifully typeset. Today&rsquo;s feast, season color, fasting status, the saint to invoke — visible the moment you open the app.",
-              },
-              {
-                num: "IV",
-                title: "Seasons & Challenges",
-                body: "Advent Jesse Tree, Lent 40, Marian Consecration, the Ninety. Walk a structured arc together with daily check-ins for every member.",
-              },
+              { num: "01", title: "Dashboard", body: "The command center. Today's liturgical day, your schedule, prayer streak, tasks due, budget alerts, date night, goal progress — at a glance." },
+              { num: "02", title: "Spiritual Life", body: "The interior rhythm of the home. Liturgical calendar, shared prayer tracker, and seasons walked together — Advent, Lent, the Ninety, Marian Consecration." },
+              { num: "03", title: "Household Order", body: "Seven systems: Spiritual, Financial, Order, Marriage, Child Formation, Health, Hospitality. Define routines and assign by member." },
+              { num: "04", title: "Budget & Stewardship", body: "Tithing, monthly categories, savings goals, debt reduction. Calm and premium — not Mint, not YNAB, not corporate fintech." },
+              { num: "05", title: "Mission & Goals", body: "A family mission statement, a list of values, a technology policy, short- and long-term goals tracked together." },
+              { num: "06", title: "Schedule", body: "Events, tasks, date night, medical, school, liturgical. The next thirty days, beautifully laid out." },
             ].map((m) => (
               <div key={m.num} className="bg-background p-8 md:p-10">
                 <div className="font-mono text-xs text-muted-foreground">{m.num}</div>
                 <h3 className="font-serif text-2xl mt-2 mb-3">{m.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: m.body }} />
+                <p className="text-sm text-muted-foreground leading-relaxed">{m.body}</p>
               </div>
             ))}
           </div>
@@ -141,14 +124,14 @@ export default function Landing() {
 
       {/* CTA */}
       <section className="border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 md:px-10 py-24 text-center md:text-left grid md:grid-cols-12 gap-10 items-center">
+        <div className="max-w-6xl mx-auto px-6 md:px-10 py-24 grid md:grid-cols-12 gap-10 items-center">
           <div className="md:col-span-8">
             <h2 className="font-serif text-4xl md:text-5xl tracking-tight leading-tight">
-              Sanctify the day. <span className="italic">Then the next.</span>
+              Order the day. <span className="italic">Then the year.</span>
             </h2>
             <p className="mt-4 text-muted-foreground max-w-xl">
-              The household that prays together — measures together. Begin with Google
-              and have your house set up before Compline.
+              Set up your household in under five minutes. Sign in, name the family,
+              add the members, and the operating system is yours.
             </p>
           </div>
           <div className="md:col-span-4 md:text-right">
@@ -165,7 +148,7 @@ export default function Landing() {
 
       <footer className="py-10">
         <div className="max-w-6xl mx-auto px-6 md:px-10 flex flex-wrap items-center justify-between gap-4 text-xs text-muted-foreground">
-          <div className="font-serif text-base text-foreground">Domus<span className="text-liturgical-white">.</span></div>
+          <div className="font-serif text-base text-foreground">Patria<span className="text-liturgical-white">.</span></div>
           <div>Ad maiorem Dei gloriam.</div>
         </div>
       </footer>

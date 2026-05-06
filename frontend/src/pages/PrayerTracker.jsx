@@ -11,7 +11,7 @@ const PRAYER_TYPES = [
   { key: "lectio_divina", label: "Lectio Divina" },
 ];
 
-export default function PrayerTracker() {
+export default function PrayerTracker({ embedded = false }) {
   const [members, setMembers] = useState([]);
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState({ by_type: {}, total: 0 });
@@ -47,10 +47,10 @@ export default function PrayerTracker() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 md:px-12 py-10 md:py-16" data-testid="prayer-page">
-      <header className="border-b border-border pb-6 mb-10 flex flex-wrap items-end justify-between gap-4">
+      <header className={`${embedded ? "" : "border-b border-border"} pb-6 mb-10 flex flex-wrap items-end justify-between gap-4`}>
         <div>
-          <div className="overline mb-2">Shared Prayer Tracker</div>
-          <h1 className="font-serif text-4xl md:text-5xl tracking-tighter">{formatCivilDate(dt)}</h1>
+          {!embedded && <div className="overline mb-2">Shared Prayer Tracker</div>}
+          <h1 className="font-serif text-3xl md:text-4xl tracking-tighter">{formatCivilDate(dt)}</h1>
         </div>
         <input
           type="date"

@@ -8,7 +8,7 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-export default function Calendar() {
+export default function Calendar({ embedded = false }) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
@@ -28,10 +28,10 @@ export default function Calendar() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 md:px-12 py-10 md:py-16" data-testid="calendar-page">
-      <header className="border-b border-border pb-6 mb-8 flex items-end justify-between gap-4">
+      <header className={`${embedded ? "" : "border-b border-border"} pb-6 mb-8 flex items-end justify-between gap-4`}>
         <div>
-          <div className="overline mb-2">Liturgical Calendar</div>
-          <h1 className="font-serif text-4xl md:text-5xl tracking-tighter">{MONTHS[month - 1]} <span className="text-muted-foreground">{year}</span></h1>
+          {!embedded && <div className="overline mb-2">Liturgical Calendar</div>}
+          <h1 className="font-serif text-3xl md:text-4xl tracking-tighter">{MONTHS[month - 1]} <span className="text-muted-foreground">{year}</span></h1>
         </div>
         <div className="flex gap-2 font-mono">
           <button onClick={prev} data-testid="calendar-prev-button" className="border border-border px-3 py-1.5 text-sm hover:bg-secondary">←</button>

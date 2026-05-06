@@ -45,7 +45,7 @@ export default function Onboarding() {
         });
       }
       await refresh();
-      navigate("/today", { replace: true });
+      navigate("/dashboard", { replace: true });
     } finally {
       setSubmitting(false);
     }
@@ -54,7 +54,7 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen flex items-center bg-background text-foreground py-12">
       <div className="w-full max-w-xl mx-auto px-6">
-        <div className="font-serif text-3xl mb-2">Domus<span className="text-liturgical-white">.</span></div>
+        <div className="font-serif text-3xl mb-2">Patria<span className="text-liturgical-white">.</span></div>
         <div className="overline mb-12">Setting up the household · {String(step).padStart(2, "0")} / 03</div>
 
         {step === 1 && (

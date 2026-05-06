@@ -289,6 +289,10 @@ class HouseholdUpdate(BaseModel):
     name: Optional[str] = None
     patron_saint: Optional[str] = None
     calendar_variant: Optional[str] = None
+    mission_statement: Optional[str] = None
+    values: Optional[List[str]] = None
+    technology_policy: Optional[str] = None
+    roles: Optional[dict] = None
 
 
 @api.patch("/household")
@@ -359,7 +363,12 @@ async def liturgical_calendar(year: int, month: int):
 
 # ---------- Rule of Life ----------
 
-PILLARS = ["prayer", "fasting", "almsgiving", "work", "rest", "formation", "hospitality"]
+PILLARS = [
+    # New household-order categories
+    "spiritual", "financial", "order", "marriage", "children", "health", "hospitality",
+    # Legacy categories — kept for backwards compatibility
+    "prayer", "fasting", "almsgiving", "work", "rest", "formation",
+]
 
 
 class RuleCreate(BaseModel):
@@ -649,6 +658,571 @@ async def end_challenge(challenge_id: str, user: User = Depends(get_current_user
         {"$set": {"status": "completed"}},
     )
     return {"ok": True}
+
+
+# ---------- Budget & Stewardship ----------
+
+class BudgetCategoryCreate(BaseModel):
+    name: str
+    monthly_limit: float = 0.0
+    color: str = "slate"
+    kind: str = "expense"  # expense | giving | savings
+
+
+class BudgetCategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    monthly_limit: Optional[float] = None
+    color: Optional[str] = None
+    kind: Optional[str] = None
+
+
+@api.get("/budget/categories")
+async def list_budget_categories(user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    cats = await db.budget_categories.find(
+        {"household_id": h.household_id}, {"_id": 0}
+    ).to_list(200)
+    return {"categories": cats}
+
+
+@api.post("/budget/categories")
+async def create_budget_category(payload: BudgetCategoryCreate, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    cid = make_id("bcat")
+    doc = {
+        "category_id": cid,
+        "household_id": h.household_id,
+        "name": payload.name,
+        "monthly_limit": payload.monthly_limit,
+        "color": payload.color,
+        "kind": payload.kind,
+        "created_at": now_utc().isoformat(),
+    }
+    await db.budget_categories.insert_one(doc)
+    return {"category_id": cid}
+
+
+@api.patch("/budget/categories/{category_id}")
+async def update_budget_category(category_id: str, payload: BudgetCategoryUpdate, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    update = payload.model_dump(exclude_none=True)
+    if update:
+        await db.budget_categories.update_one(
+            {"category_id": category_id, "household_id": h.household_id}, {"$set": update}
+        )
+    return {"ok": True}
+
+
+@api.delete("/budget/categories/{category_id}")
+async def delete_budget_category(category_id: str, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    await db.budget_categories.delete_one({"category_id": category_id, "household_id": h.household_id})
+    await db.budget_transactions.delete_many({"category_id": category_id})
+    return {"ok": True}
+
+
+class TransactionCreate(BaseModel):
+    category_id: Optional[str] = None
+    amount: float
+    type: str = "expense"  # expense | income | giving
+    note: Optional[str] = None
+    txn_date: Optional[str] = None  # YYYY-MM-DD
+    member_id: Optional[str] = None
+
+
+@api.post("/budget/transactions")
+async def create_transaction(payload: TransactionCreate, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    tid = make_id("txn")
+    doc = {
+        "txn_id": tid,
+        "household_id": h.household_id,
+        "category_id": payload.category_id,
+        "amount": payload.amount,
+        "type": payload.type,
+        "note": payload.note,
+        "member_id": payload.member_id,
+        "txn_date": payload.txn_date or date.today().isoformat(),
+        "created_at": now_utc().isoformat(),
+    }
+    await db.budget_transactions.insert_one(doc)
+    return {"txn_id": tid}
+
+
+@api.get("/budget/transactions")
+async def list_transactions(month: Optional[int] = None, year: Optional[int] = None, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    today = date.today()
+    y = year or today.year
+    m = month or today.month
+    start = date(y, m, 1).isoformat()
+    end_d = date(y + 1, 1, 1) if m == 12 else date(y, m + 1, 1)
+    end = end_d.isoformat()
+    txns = await db.budget_transactions.find(
+        {"household_id": h.household_id, "txn_date": {"$gte": start, "$lt": end}},
+        {"_id": 0},
+    ).sort("txn_date", -1).to_list(2000)
+    return {"month": m, "year": y, "transactions": txns}
+
+
+@api.delete("/budget/transactions/{txn_id}")
+async def delete_transaction(txn_id: str, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    await db.budget_transactions.delete_one({"txn_id": txn_id, "household_id": h.household_id})
+    return {"ok": True}
+
+
+@api.get("/budget/summary")
+async def budget_summary(month: Optional[int] = None, year: Optional[int] = None, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    today = date.today()
+    y = year or today.year
+    m = month or today.month
+    start = date(y, m, 1).isoformat()
+    end_d = date(y + 1, 1, 1) if m == 12 else date(y, m + 1, 1)
+    end = end_d.isoformat()
+
+    cats = await db.budget_categories.find({"household_id": h.household_id}, {"_id": 0}).to_list(200)
+    txns = await db.budget_transactions.find(
+        {"household_id": h.household_id, "txn_date": {"$gte": start, "$lt": end}}, {"_id": 0}
+    ).to_list(5000)
+
+    income_total = sum(t["amount"] for t in txns if t["type"] == "income")
+    expense_total = sum(t["amount"] for t in txns if t["type"] == "expense")
+    giving_total = sum(t["amount"] for t in txns if t["type"] == "giving")
+
+    by_cat = {}
+    for t in txns:
+        if t.get("category_id"):
+            by_cat[t["category_id"]] = by_cat.get(t["category_id"], 0) + t["amount"]
+
+    cat_progress = []
+    for c in cats:
+        spent = by_cat.get(c["category_id"], 0)
+        cat_progress.append({
+            **c,
+            "spent": spent,
+            "remaining": (c.get("monthly_limit") or 0) - spent,
+            "pct": round((spent / c["monthly_limit"]) * 100, 1) if c.get("monthly_limit") else 0,
+        })
+
+    tithe_pct = round((giving_total / income_total) * 100, 1) if income_total else 0
+
+    return {
+        "month": m,
+        "year": y,
+        "income": income_total,
+        "expense": expense_total,
+        "giving": giving_total,
+        "tithe_pct": tithe_pct,
+        "net": income_total - expense_total - giving_total,
+        "categories": cat_progress,
+    }
+
+
+class SavingsGoalCreate(BaseModel):
+    name: str
+    target_amount: float
+    current_amount: float = 0.0
+    deadline: Optional[str] = None
+    color: str = "green"
+
+
+class SavingsGoalUpdate(BaseModel):
+    name: Optional[str] = None
+    target_amount: Optional[float] = None
+    current_amount: Optional[float] = None
+    deadline: Optional[str] = None
+    color: Optional[str] = None
+
+
+@api.get("/budget/savings-goals")
+async def list_savings_goals(user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    goals = await db.savings_goals.find({"household_id": h.household_id}, {"_id": 0}).to_list(100)
+    return {"goals": goals}
+
+
+@api.post("/budget/savings-goals")
+async def create_savings_goal(payload: SavingsGoalCreate, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    gid = make_id("sg")
+    doc = {
+        "goal_id": gid,
+        "household_id": h.household_id,
+        "name": payload.name,
+        "target_amount": payload.target_amount,
+        "current_amount": payload.current_amount,
+        "deadline": payload.deadline,
+        "color": payload.color,
+        "created_at": now_utc().isoformat(),
+    }
+    await db.savings_goals.insert_one(doc)
+    return {"goal_id": gid}
+
+
+@api.patch("/budget/savings-goals/{goal_id}")
+async def update_savings_goal(goal_id: str, payload: SavingsGoalUpdate, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    update = payload.model_dump(exclude_none=True)
+    if update:
+        await db.savings_goals.update_one(
+            {"goal_id": goal_id, "household_id": h.household_id}, {"$set": update}
+        )
+    return {"ok": True}
+
+
+@api.delete("/budget/savings-goals/{goal_id}")
+async def delete_savings_goal(goal_id: str, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    await db.savings_goals.delete_one({"goal_id": goal_id, "household_id": h.household_id})
+    return {"ok": True}
+
+
+# ---------- Schedule ----------
+
+class EventCreate(BaseModel):
+    title: str
+    event_date: str  # YYYY-MM-DD
+    event_time: Optional[str] = None  # HH:MM
+    type: str = "family"  # family | liturgical | date_night | medical | school | other
+    notes: Optional[str] = None
+    member_ids: List[str] = []
+
+
+class EventUpdate(BaseModel):
+    title: Optional[str] = None
+    event_date: Optional[str] = None
+    event_time: Optional[str] = None
+    type: Optional[str] = None
+    notes: Optional[str] = None
+    member_ids: Optional[List[str]] = None
+
+
+@api.get("/schedule/events")
+async def list_events(start: Optional[str] = None, end: Optional[str] = None, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    q = {"household_id": h.household_id}
+    if start or end:
+        q["event_date"] = {}
+        if start:
+            q["event_date"]["$gte"] = start
+        if end:
+            q["event_date"]["$lte"] = end
+    events = await db.events.find(q, {"_id": 0}).sort("event_date", 1).to_list(500)
+    return {"events": events}
+
+
+@api.post("/schedule/events")
+async def create_event(payload: EventCreate, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    eid = make_id("evt")
+    doc = {
+        "event_id": eid,
+        "household_id": h.household_id,
+        **payload.model_dump(),
+        "created_at": now_utc().isoformat(),
+    }
+    await db.events.insert_one(doc)
+    return {"event_id": eid}
+
+
+@api.patch("/schedule/events/{event_id}")
+async def update_event(event_id: str, payload: EventUpdate, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    update = payload.model_dump(exclude_none=True)
+    if update:
+        await db.events.update_one(
+            {"event_id": event_id, "household_id": h.household_id}, {"$set": update}
+        )
+    return {"ok": True}
+
+
+@api.delete("/schedule/events/{event_id}")
+async def delete_event(event_id: str, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    await db.events.delete_one({"event_id": event_id, "household_id": h.household_id})
+    return {"ok": True}
+
+
+# ---------- Household Tasks ----------
+
+class TaskCreate(BaseModel):
+    title: str
+    due_date: Optional[str] = None
+    assigned_member_id: Optional[str] = None
+    category: Optional[str] = "general"  # general | chore | errand | maintenance
+
+
+class TaskUpdate(BaseModel):
+    title: Optional[str] = None
+    due_date: Optional[str] = None
+    assigned_member_id: Optional[str] = None
+    category: Optional[str] = None
+    completed: Optional[bool] = None
+
+
+@api.get("/tasks")
+async def list_tasks(include_completed: bool = False, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    q = {"household_id": h.household_id}
+    if not include_completed:
+        q["completed"] = False
+    tasks = await db.tasks.find(q, {"_id": 0}).sort("due_date", 1).to_list(500)
+    return {"tasks": tasks}
+
+
+@api.post("/tasks")
+async def create_task(payload: TaskCreate, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    tid = make_id("task")
+    doc = {
+        "task_id": tid,
+        "household_id": h.household_id,
+        **payload.model_dump(),
+        "completed": False,
+        "completed_at": None,
+        "created_at": now_utc().isoformat(),
+    }
+    await db.tasks.insert_one(doc)
+    return {"task_id": tid}
+
+
+@api.patch("/tasks/{task_id}")
+async def update_task(task_id: str, payload: TaskUpdate, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    update = payload.model_dump(exclude_none=True)
+    if "completed" in update:
+        update["completed_at"] = now_utc().isoformat() if update["completed"] else None
+    if update:
+        await db.tasks.update_one(
+            {"task_id": task_id, "household_id": h.household_id}, {"$set": update}
+        )
+    return {"ok": True}
+
+
+@api.delete("/tasks/{task_id}")
+async def delete_task(task_id: str, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    await db.tasks.delete_one({"task_id": task_id, "household_id": h.household_id})
+    return {"ok": True}
+
+
+# ---------- Goals ----------
+
+class GoalCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    scope: str = "short"  # short | long
+    progress: int = 0  # 0-100
+    deadline: Optional[str] = None
+
+
+class GoalUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    scope: Optional[str] = None
+    progress: Optional[int] = None
+    deadline: Optional[str] = None
+    completed: Optional[bool] = None
+
+
+@api.get("/goals")
+async def list_goals(user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    goals = await db.family_goals.find(
+        {"household_id": h.household_id}, {"_id": 0}
+    ).sort("created_at", -1).to_list(200)
+    return {"goals": goals}
+
+
+@api.post("/goals")
+async def create_goal(payload: GoalCreate, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    gid = make_id("goal")
+    doc = {
+        "goal_id": gid,
+        "household_id": h.household_id,
+        **payload.model_dump(),
+        "completed": False,
+        "created_at": now_utc().isoformat(),
+    }
+    await db.family_goals.insert_one(doc)
+    return {"goal_id": gid}
+
+
+@api.patch("/goals/{goal_id}")
+async def update_goal(goal_id: str, payload: GoalUpdate, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    update = payload.model_dump(exclude_none=True)
+    if update:
+        await db.family_goals.update_one(
+            {"goal_id": goal_id, "household_id": h.household_id}, {"$set": update}
+        )
+    return {"ok": True}
+
+
+@api.delete("/goals/{goal_id}")
+async def delete_goal(goal_id: str, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    await db.family_goals.delete_one({"goal_id": goal_id, "household_id": h.household_id})
+    return {"ok": True}
+
+
+# ---------- Dashboard ----------
+
+@api.get("/dashboard")
+async def dashboard(user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    today = date.today()
+    today_str = today.isoformat()
+    week_start_str = (today - timedelta(days=6)).isoformat()
+    week_end_str = (today + timedelta(days=7)).isoformat()
+
+    # Liturgical
+    lit = liturgical_for(today)
+
+    # Members
+    members = await db.members.find({"household_id": h.household_id}, {"_id": 0}).to_list(50)
+
+    # Today's schedule
+    todays_events = await db.events.find(
+        {"household_id": h.household_id, "event_date": today_str}, {"_id": 0}
+    ).sort("event_time", 1).to_list(50)
+    upcoming_events = await db.events.find(
+        {"household_id": h.household_id, "event_date": {"$gt": today_str, "$lte": week_end_str}},
+        {"_id": 0},
+    ).sort("event_date", 1).to_list(20)
+
+    # Date night: next event of type date_night
+    date_night = await db.events.find_one(
+        {"household_id": h.household_id, "type": "date_night", "event_date": {"$gte": today_str}},
+        {"_id": 0},
+        sort=[("event_date", 1)],
+    )
+
+    # Tasks
+    open_tasks = await db.tasks.find(
+        {"household_id": h.household_id, "completed": False}, {"_id": 0}
+    ).sort("due_date", 1).to_list(20)
+    tasks_due_today = [t for t in open_tasks if t.get("due_date") == today_str]
+    tasks_overdue = [t for t in open_tasks if t.get("due_date") and t["due_date"] < today_str]
+
+    # Prayer streak — consecutive days at least one log in household
+    streak = 0
+    cursor_date = today
+    for _ in range(60):
+        cnt = await db.prayer_logs.count_documents(
+            {"household_id": h.household_id, "log_date": cursor_date.isoformat()}
+        )
+        if cnt > 0:
+            streak += 1
+            cursor_date -= timedelta(days=1)
+        else:
+            # If today has no log, don't break the streak — start counting yesterday
+            if cursor_date == today:
+                cursor_date -= timedelta(days=1)
+                continue
+            break
+    week_prayer_count = await db.prayer_logs.count_documents(
+        {"household_id": h.household_id, "log_date": {"$gte": week_start_str}}
+    )
+
+    # Budget summary (current month)
+    y, m = today.year, today.month
+    m_start = date(y, m, 1).isoformat()
+    m_end_d = date(y + 1, 1, 1) if m == 12 else date(y, m + 1, 1)
+    m_end = m_end_d.isoformat()
+    txns = await db.budget_transactions.find(
+        {"household_id": h.household_id, "txn_date": {"$gte": m_start, "$lt": m_end}}, {"_id": 0}
+    ).to_list(2000)
+    income = sum(t["amount"] for t in txns if t["type"] == "income")
+    expense = sum(t["amount"] for t in txns if t["type"] == "expense")
+    giving = sum(t["amount"] for t in txns if t["type"] == "giving")
+    cats = await db.budget_categories.find({"household_id": h.household_id}, {"_id": 0}).to_list(100)
+    over_cats = []
+    for c in cats:
+        if not c.get("monthly_limit"):
+            continue
+        spent = sum(t["amount"] for t in txns if t.get("category_id") == c["category_id"])
+        if spent > c["monthly_limit"]:
+            over_cats.append({"name": c["name"], "spent": spent, "limit": c["monthly_limit"]})
+
+    # Active challenge
+    active_ch = await db.challenges.find_one(
+        {"household_id": h.household_id, "status": "active"}, {"_id": 0}
+    )
+    if active_ch:
+        try:
+            sd = date.fromisoformat(active_ch["start_date"])
+            day_num = (today - sd).days + 1
+        except Exception:
+            day_num = 1
+        active_ch["current_day"] = max(1, min(day_num, active_ch["days_total"]))
+        active_ch["completion_pct"] = round(
+            ((active_ch["current_day"] - 1) / active_ch["days_total"]) * 100, 1
+        ) if active_ch["days_total"] else 0
+
+    # Goals progress
+    goals = await db.family_goals.find(
+        {"household_id": h.household_id, "completed": False}, {"_id": 0}
+    ).sort("created_at", -1).to_list(20)
+    avg_progress = round(sum(g.get("progress", 0) for g in goals) / len(goals), 0) if goals else 0
+
+    # Household weekly score (composite)
+    rules = await db.rules.find({"household_id": h.household_id}, {"_id": 0}).to_list(500)
+    rule_checkins_week = await db.rule_checkins.count_documents(
+        {"household_id": h.household_id, "checkin_date": {"$gte": week_start_str}}
+    )
+    expected_rule_checkins = max(1, len(rules) * max(1, len(members)) * 7)
+    rule_pct = min(100, round((rule_checkins_week / expected_rule_checkins) * 100))
+    prayer_pct = min(100, round((week_prayer_count / max(1, len(members) * 7)) * 100))
+    task_pct = 100 if not tasks_overdue else max(0, 100 - len(tasks_overdue) * 10)
+    budget_pct = 100 if not over_cats else max(0, 100 - len(over_cats) * 15)
+    weekly_score = round((rule_pct + prayer_pct + task_pct + budget_pct) / 4)
+
+    # Household details
+    house = await db.households.find_one({"household_id": h.household_id}, {"_id": 0})
+
+    return {
+        "household": house,
+        "members_count": len(members),
+        "liturgical": lit,
+        "today": today_str,
+        "todays_events": todays_events,
+        "upcoming_events": upcoming_events,
+        "date_night": date_night,
+        "tasks": {
+            "due_today": tasks_due_today,
+            "overdue": tasks_overdue,
+            "open_count": len(open_tasks),
+        },
+        "prayer": {
+            "streak_days": streak,
+            "week_count": week_prayer_count,
+        },
+        "budget": {
+            "income": income,
+            "expense": expense,
+            "giving": giving,
+            "net": income - expense - giving,
+            "tithe_pct": round((giving / income) * 100, 1) if income else 0,
+            "over_categories": over_cats,
+        },
+        "active_challenge": active_ch,
+        "goals": {
+            "items": goals[:3],
+            "avg_progress": avg_progress,
+            "open_count": len(goals),
+        },
+        "weekly_score": {
+            "total": weekly_score,
+            "rule_pct": rule_pct,
+            "prayer_pct": prayer_pct,
+            "tasks_pct": task_pct,
+            "budget_pct": budget_pct,
+        },
+    }
 
 
 # ---------- Misc ----------

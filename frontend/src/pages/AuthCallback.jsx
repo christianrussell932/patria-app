@@ -31,7 +31,7 @@ export default function AuthCallback() {
         if (!r.data.user.current_household_id) {
           navigate("/onboarding", { replace: true, state: { user: r.data.user } });
         } else {
-          navigate("/today", { replace: true, state: { user: r.data.user } });
+          navigate("/dashboard", { replace: true, state: { user: r.data.user } });
         }
       } catch (_e) {
         navigate("/", { replace: true });
