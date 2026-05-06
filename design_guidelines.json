@@ -1,0 +1,132 @@
+{
+  "theme": {
+    "primary_mode": "light",
+    "supported_modes": ["light", "dark"],
+    "archetype": "Organic & Earthy / Swiss & High-Contrast Hybrid",
+    "description": "Monastic restraint meets Linear-style productivity. Serious, editorial, intentional. Warm candlelight dark mode and bone-white light mode."
+  },
+  "typography": {
+    "font_families": {
+      "heading": "Fraunces, serif",
+      "body": "Geist, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "google_fonts_urls": [
+      "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&display=swap",
+      "https://fonts.googleapis.com/css2?family=Geist:wght@300..900&display=swap",
+      "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+    ],
+    "scale": {
+      "h1": "font-serif text-5xl md:text-6xl tracking-tighter leading-none",
+      "h2": "font-serif text-3xl md:text-4xl tracking-tight leading-tight",
+      "h3": "font-serif text-2xl tracking-tight",
+      "h4": "font-sans text-lg font-medium",
+      "overline": "font-sans text-xs tracking-[0.2em] uppercase text-muted-foreground",
+      "body": "font-sans text-base leading-relaxed",
+      "data": "font-mono text-sm tracking-tight"
+    }
+  },
+  "colors": {
+    "light": {
+      "background": "#FAF9F6",
+      "surface": "#F2EFE9",
+      "primary": "#1A1714",
+      "primary_foreground": "#FAF9F6",
+      "secondary": "#EAE6E1",
+      "secondary_foreground": "#595959",
+      "muted": "#E5E1DB",
+      "muted_foreground": "#8C8681",
+      "border": "#DCD7D0",
+      "liturgical": {
+        "green": "#3E5B42",
+        "violet": "#5D3A63",
+        "white": "#D4AF37",
+        "red": "#8B1C24",
+        "rose": "#C57E88"
+      }
+    },
+    "dark": {
+      "background": "#1A1714",
+      "surface": "#24201D",
+      "primary": "#EAE6E1",
+      "primary_foreground": "#1A1714",
+      "secondary": "#312D29",
+      "secondary_foreground": "#A39F99",
+      "muted": "#2C2824",
+      "muted_foreground": "#7A7571",
+      "border": "#3A3632",
+      "liturgical": {
+        "green": "#5A7A5F",
+        "violet": "#8A5C91",
+        "white": "#D4AF37",
+        "red": "#B23D47",
+        "rose": "#D89BA6"
+      }
+    }
+  },
+  "layout": {
+    "spacing_system": "Generous spacing. p-8, p-12 for containers. Dense data presentation inside lists. Minimal gaps in data rows to emulate spreadsheet/Linear density.",
+    "alignment": "Strictly left-aligned. Asymmetrical grids. Avoid center alignment outside of empty states.",
+    "borders": "Use hairline borders (1px) aggressively for structure. No heavy box shadows.",
+    "radii": "Very subtle rounding. rounded-sm (0.125rem) or rounded-none for a crisp, editorial feel."
+  },
+  "components": {
+    "cards": "Frameless or 1px border. No drop shadows. Use background color differentiation (surface vs background) sparingly.",
+    "buttons": "Flat, sharp. Primary button is solid dark/light. Secondary buttons are subtle outlines or ghost. Text always crisp.",
+    "forms": "Inputs should have 1px borders, focus rings should be subtle (ring-1 ring-primary). No rounded pill shapes.",
+    "dividers": "Essential to the aesthetic. Use hr elements with border-border extensively to separate sections."
+  },
+  "screens": {
+    "marketing_page": {
+      "hero": "Asymmetrical layout. Massive Fraunces heading left-aligned. Image block offset to the right. Use the architecture image.",
+      "positioning": "Section contrasting devotional content vs OS. 2-column typographic layout.",
+      "cta": "Minimalist 'Begin with Google' button, sharp corners."
+    },
+    "onboarding": {
+      "layout": "Centered constrained container (max-w-md). Typographic focus.",
+      "steps": "Progress indicated by subtle monospace numbers. Form fields for Household Name, Patron Saint, Liturgical Preference."
+    },
+    "today_dashboard": {
+      "header": "Breviary style. Large civil date paired with Liturgical Date and small colored indicator block (liturgical color).",
+      "prayer_rhythm": "Dense checklist. Notion-style. Thin dividers between rows. Checkboxes aligned to the left.",
+      "progress": "Minimalist mono-spaced fraction (e.g., 2/4) or thin progress bar."
+    },
+    "liturgical_calendar": {
+      "layout": "List-based or compact grid. Do not use generic full-screen calendar box. Use hairline colored left-borders on list items to indicate liturgical season.",
+      "interaction": "Clicking a day opens a side panel (Sheet) with feast details and readings."
+    },
+    "rule_of_life_builder": {
+      "layout": "Multi-column list (Kanban-lite) for pillars (Prayer, Fasting, Almsgiving, etc.).",
+      "items": "Compact rows. Avatar initials for assigned members."
+    }
+  },
+  "media": {
+    "images": [
+      {
+        "category": "hero_bg",
+        "url": "https://images.unsplash.com/photo-1772878488973-710d07215b19?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDR8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjBtaW5pbWFsaXN0JTIwY2h1cmNoJTIwYXJjaGl0ZWN0dXJlfGVufDB8fHx8MTc3ODA5MzQ4N3ww&ixlib=rb-4.1.0&q=85",
+        "description": "Modern minimalist church interior, architectural, serene light."
+      },
+      {
+        "category": "feature_lifestyle",
+        "url": "https://images.unsplash.com/photo-1775129667554-1ba0db7fabe8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNDR8MHwxfHNlYXJjaHwyfHxtaW5pbWFsaXN0JTIwb3BlbiUyMGJvb2slMjB3b29kZW4lMjBkZXNrJTIwbW9ybmluZyUyMGxpZ2h0fGVufDB8fHx8MTc3ODA5MzQ5MXww&ixlib=rb-4.1.0&q=85",
+        "description": "Desk with open journal, pen, candle. Intentional living."
+      }
+    ]
+  },
+  "motion": {
+    "principles": "Restrained, serious, functional.",
+    "transitions": "opacity 200ms ease. Avoid spring animations or excessive translation/movement. Feel should be like turning a printed page."
+  },
+  "testing": {
+    "data_testid_requirement": "All interactive elements (buttons, inputs, checklist items) MUST have a data-testid attribute in kebab-case."
+  },
+  "instructions_to_main_agent": [
+    "Apply Fraunces font to all h1, h2, h3 tags via Tailwind config.",
+    "Use Geist for body text and JetBrains Mono for data/numbers.",
+    "Implement the Liturgical colors as CSS variables so they can be applied dynamically based on the current season.",
+    "Avoid card shadow effects. Rely on hairline borders and background color contrast.",
+    "Ensure 'data-testid' is present on every clickable/input element.",
+    "Build the dashboard to feel like a dense, highly structured productivity tool, not a bubbly consumer app."
+  ]
+}
