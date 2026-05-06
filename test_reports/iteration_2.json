@@ -1,0 +1,33 @@
+{
+  "summary": "Frontend e2e tested via Playwright against the public REACT_APP_BACKEND_URL. Auth gating, onboarding 3-step, Today, Calendar (incl. 31 day rows + side Sheet), Rule of Life (7 pillars, add+delete), Prayer Tracker matrix, Challenges (5 templates, start, member checkin, active list), Household add member, Settings (theme toggle + save), and Logout all pass. No critical UI defects found.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Calendar Sheet panel", "issues": ["A11y warning: Radix DialogContent missing `Description` or `aria-describedby`. Cosmetic, but should be addressed by adding <SheetDescription> for screen readers."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_catholic_household_os.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Optional) Add SheetDescription / aria-describedby to Calendar day Sheet to silence Radix a11y warnings.",
+    "(Cosmetic) None blocking; previous backend optional items still apply."
+  ],
+  "critical_code_review_comments": [
+    "AppShell nav uses derived testid `nav-${label.toLowerCase().replace(/\\s+/g,'-')}-link`; for 'Rule of Life' this becomes `nav-rule-of-life-link` and for 'Prayer' it is `nav-prayer-link` (NOT `nav-prayer-tracker-link`). Document this convention or hardcode stable testids to avoid future test churn.",
+    "Onboarding parent-color testid embeds raw hex strings (e.g. `onboarding-parent-color-#7d3c5b-button`); the `#` is fine in attribute value but is awkward for selectors. Consider using semantic names (purple/green/gold).",
+    "AuthProvider correctly skips /me when URL hash contains session_id; AuthCallback uses useRef hasProcessed — no re-exchange race observed.",
+    "Calendar fetches /liturgical/calendar each month — works; consider caching to avoid re-fetch on month nav."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (prior iteration)", "frontend": "100% of requested flows"},
+  "test_credentials": "Mongo-seeded ephemeral session test_session_1778094326978 (cleaned up after run).",
+  "seed_data_creation": "Inserted one user + session in test_database, ran the full onboarding -> household creation flow, then cleaned up household, members, rules, rule_checkins, prayer_logs, challenges, challenge_checkins, user, and user_session.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Frontend critical paths verified end-to-end. Nav testids: nav-today-link, nav-calendar-link, nav-rule-of-life-link, nav-prayer-link, nav-challenges-link, nav-household-link. Settings link uses settings-link. Calendar requires a brief wait (~1.5s) after navigation for /liturgical/calendar fetch before day rows appear. To re-seed: `mongosh --quiet --eval 'use(\"test_database\"); ...'` per /app/auth_testing.md and add cookie domain emergent-blueprint-2.preview.emergentagent.com.",
+  "rca of the issue": "No bugs reproduced. Two minor non-blocking issues observed: (1) Radix Sheet missing description (a11y warning only); (2) the testid pattern derived from labels is brittle but currently consistent."
+}
