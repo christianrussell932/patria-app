@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { liturgicalDot, liturgicalText } from "@/lib/liturgical";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -77,6 +77,7 @@ export default function Calendar() {
               <SheetHeader>
                 <div className={`w-1 h-12 ${liturgicalDot(selected.color)}`} />
                 <SheetTitle className="font-serif text-3xl tracking-tight leading-tight pt-3">{selected.name}</SheetTitle>
+                <SheetDescription className="sr-only">Liturgical day details for {selected.date}</SheetDescription>
               </SheetHeader>
               <div className="mt-6 space-y-5 text-sm">
                 <div className="grid grid-cols-3 gap-3 text-xs font-mono uppercase tracking-wider">
