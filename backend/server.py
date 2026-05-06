@@ -717,7 +717,7 @@ async def update_budget_category(category_id: str, payload: BudgetCategoryUpdate
 async def delete_budget_category(category_id: str, user: User = Depends(get_current_user)):
     h = await require_household(user)
     await db.budget_categories.delete_one({"category_id": category_id, "household_id": h.household_id})
-    await db.budget_transactions.delete_many({"category_id": category_id})
+    await db.budget_transactions.delete_many({"category_id": category_id, "household_id": h.household_id})
     return {"ok": True}
 
 
@@ -733,6 +733,10 @@ class TransactionCreate(BaseModel):
 @api.post("/budget/transactions")
 async def create_transaction(payload: TransactionCreate, user: User = Depends(get_current_user)):
     h = await require_household(user)
+    if payload.type not in ("expense", "income", "giving"):
+        raise HTTPException(status_code=400, detail="type must be expense, income, or giving")
+    if payload.amount is None or payload.amount < 0:
+        raise HTTPException(status_code=400, detail="amount must be non-negative")
     tid = make_id("txn")
     doc = {
         "txn_id": tid,
@@ -916,6 +920,8 @@ async def list_events(start: Optional[str] = None, end: Optional[str] = None, us
 @api.post("/schedule/events")
 async def create_event(payload: EventCreate, user: User = Depends(get_current_user)):
     h = await require_household(user)
+    if payload.type not in ("family", "liturgical", "date_night", "school", "medical", "other"):
+        raise HTTPException(status_code=400, detail="invalid event type")
     eid = make_id("evt")
     doc = {
         "event_id": eid,
@@ -1039,11 +1045,15 @@ async def list_goals(user: User = Depends(get_current_user)):
 @api.post("/goals")
 async def create_goal(payload: GoalCreate, user: User = Depends(get_current_user)):
     h = await require_household(user)
+    data = payload.model_dump()
+    data["progress"] = max(0, min(100, data.get("progress", 0)))
+    if data.get("scope") not in ("short", "long"):
+        raise HTTPException(status_code=400, detail="scope must be short or long")
     gid = make_id("goal")
     doc = {
         "goal_id": gid,
         "household_id": h.household_id,
-        **payload.model_dump(),
+        **data,
         "completed": False,
         "created_at": now_utc().isoformat(),
     }
@@ -1055,6 +1065,8 @@ async def create_goal(payload: GoalCreate, user: User = Depends(get_current_user
 async def update_goal(goal_id: str, payload: GoalUpdate, user: User = Depends(get_current_user)):
     h = await require_household(user)
     update = payload.model_dump(exclude_none=True)
+    if "progress" in update:
+        update["progress"] = max(0, min(100, update["progress"]))
     if update:
         await db.family_goals.update_one(
             {"goal_id": goal_id, "household_id": h.household_id}, {"$set": update}
