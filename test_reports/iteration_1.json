@@ -1,0 +1,44 @@
+{
+  "summary": "Backend-only testing of Catholic Household OS. Created pytest suite (34 tests) covering Auth (Bearer + 401), Liturgical (today, Christmas 2026 white solemnity, Easter 2026-04-05, Ash Wed 2026-02-18 fasting+abstinence, Dec calendar 31 days), Household (CRUD, primary protection), Rules (CRUD, idempotent check-in/uncheck-in, cascade cleanup), Prayer (log/list/stats 7d/delete), Challenges (5 templates, start from template, active with current_day/completion_pct/member_progress, idempotent check-in, end, invalid template). All 34 tests passed against the public REACT_APP_BACKEND_URL.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/auth/logout", "issue": "Logout only deletes session by cookie; bearer-token sessions remain valid in DB after logout (logout reads request.cookies, not Authorization header). Low impact for cookie-based browser flow but inconsistent with bearer-token API auth."},
+      {"endpoint": "/api/household (POST)", "issue": "Returns 200 instead of 201 on create. Same for /api/household/members, /api/rules, /api/challenges/start, /api/prayer/log. Functional but not REST-idiomatic."},
+      {"endpoint": "/api/household (POST)", "issue": "Allows creating a second household for the same user; previous household_id is overwritten on user but old household + members orphaned (no validation/cleanup)."},
+      {"endpoint": "/api/rules/{id}/checkin", "issue": "Member existence is not validated; arbitrary member_id is accepted (creates a checkin row anyway). Same for /api/challenges/{id}/checkin and /api/prayer/log."},
+      {"endpoint": "/api/challenges/active", "issue": "completion_pct is computed from elapsed days, not actual member check-ins — label is misleading (it is 'time elapsed %', not 'completion %')."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_catholic_household_os.py",
+    "/app/backend/tests/conftest.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Optional) Make /api/auth/logout also accept Authorization Bearer token and delete that session row.",
+    "(Optional) Validate member_id belongs to household in rule/challenge/prayer check-in endpoints.",
+    "(Optional) Prevent creating a second household when user.current_household_id already set, or cleanly handoff/delete prior household.",
+    "(Optional) Rename completion_pct to elapsed_pct, or compute true completion from member_progress vs days_total."
+  ],
+  "critical_code_review_comments": [
+    "server.py is ~680 lines; consider splitting into modules (auth.py, household.py, rules.py, prayer.py, challenges.py routers) for maintainability.",
+    "Dates stored as ISO strings (YYYY-MM-DD) and datetimes as ISO strings — fine, but mixing both in same docs (created_at iso str vs expires_at) makes get_current_user need defensive parsing — acceptable for MVP.",
+    "All endpoints correctly project _id:0 — no ObjectId leakage detected.",
+    "Pydantic input validation is minimal (e.g., MemberCreate.role validated only inline; consider Literal types).",
+    "CORS allows '*' with allow_credentials=True which browsers will reject — acceptable since prod URL is set; consider tightening in deployment."
+  ],
+  "updated_files": [
+    "/app/memory/test_credentials.md",
+    "/app/backend/tests/conftest.py",
+    "/app/backend/tests/test_catholic_household_os.py"
+  ],
+  "success_rate": {"backend": "100% (34/34)", "frontend": "N/A (skipped per request)"},
+  "test_credentials": "Mongo-seeded session in test_database. See /app/memory/test_credentials.md. Each pytest run seeds a fresh user+session and tears it down.",
+  "seed_data_creation": "Per-test-session ephemeral user + session inserted into test_database via pymongo fixture; cleanup fixture deletes household, members, rules, rule_checkins, prayer_logs, challenges, challenge_checkins, user, and user_sessions.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend test suite at /app/backend/tests/test_catholic_household_os.py is the canonical regression suite. It uses BASE_URL from REACT_APP_BACKEND_URL and seeds its own session via pymongo against local MongoDB (test_database). Re-run: cd /app/backend && python -m pytest tests/test_catholic_household_os.py -v",
+  "rca of the issue": "No bugs found. All requested features behave as specified."
+}
