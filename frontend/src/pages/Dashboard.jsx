@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { liturgicalDot, liturgicalText, formatCivilDate, initials, memberTileClass } from "@/lib/liturgical";
 import Panel from "@/components/Panel";
+import { CrestDivider } from "@/components/Crest";
 
 const fmtMoney = (n) =>
   n == null ? "—" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
@@ -42,7 +43,7 @@ export default function Dashboard() {
           </div>
 
           <div className="flex flex-wrap items-end gap-x-10 gap-y-3">
-            <Snapshot value={weekly_score?.total ?? 0} suffix="" label="Weekly score" />
+            <Snapshot value={weekly_score?.total ?? 0} suffix="" label="Household health" />
             <Snapshot value={prayer.streak_days} label="Prayer streak" />
             <Snapshot value={tasks.open_count} label="Open tasks" />
             <Snapshot value={data.members_count} label="Members" />
@@ -97,9 +98,9 @@ export default function Dashboard() {
         </Panel>
 
         {/* Weekly score */}
-        <Panel testId="dashboard-score-panel" className="lg:col-span-5" label="Weekly Household Score" hint="Composite of rule, prayer, tasks and budget">
+        <Panel testId="dashboard-score-panel" className="lg:col-span-5" label="Household Health" hint="Diagnostic across rule, prayer, tasks, and budget — last 7 days">
           <div className="font-serif text-7xl tracking-tighter leading-none mb-2">{weekly_score.total}</div>
-          <div className="font-mono text-xs text-muted-foreground mb-6">/ 100 · last 7 days</div>
+          <div className="font-mono text-xs text-muted-foreground mb-6">/ 100 · reflective, not a trophy</div>
           <div className="space-y-3">
             <ScoreBar label="Rule of Life" pct={weekly_score.rule_pct} color="green" />
             <ScoreBar label="Prayer" pct={weekly_score.prayer_pct} color="violet" />
@@ -252,7 +253,7 @@ export default function Dashboard() {
         {/* Mission preview */}
         <Panel
           testId="dashboard-mission-panel"
-          className={active_challenge ? "lg:col-span-5" : "lg:col-span-12"}
+          className={active_challenge ? "lg:col-span-5" : "lg:col-span-7"}
           label="Mission"
           action={<Link to="/mission" className="text-xs text-muted-foreground hover:text-foreground" data-testid="dashboard-mission-link">Edit →</Link>}
         >
@@ -270,6 +271,22 @@ export default function Dashboard() {
               ))}
             </div>
           )}
+        </Panel>
+
+        {/* Family Council CTA */}
+        <Panel
+          testId="dashboard-council-panel"
+          className={active_challenge ? "lg:col-span-12" : "lg:col-span-5"}
+          label="This week's council"
+          action={<Link to="/council" className="text-xs text-muted-foreground hover:text-foreground" data-testid="dashboard-council-link">Open →</Link>}
+        >
+          <p className="font-serif text-lg leading-snug mb-2">
+            Twenty quiet minutes, once a week.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Patria has composed an agenda from the last seven days. Open it together when the
+            household is gathered.
+          </p>
         </Panel>
       </div>
     </div>

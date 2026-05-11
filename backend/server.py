@@ -293,6 +293,9 @@ class HouseholdUpdate(BaseModel):
     values: Optional[List[str]] = None
     technology_policy: Optional[str] = None
     roles: Optional[dict] = None
+    sacred_heart_enthroned_at: Optional[str] = None
+    sacred_heart_renewal_at: Optional[str] = None
+    sacred_heart_notes: Optional[str] = None
 
 
 @api.patch("/household")
@@ -351,14 +354,15 @@ async def delete_member(member_id: str, user: User = Depends(get_current_user)):
 # ---------- Liturgical ----------
 
 @api.get("/liturgical/today")
-async def liturgical_today(d: Optional[str] = None):
+async def liturgical_today(d: Optional[str] = None, variant: str = "roman"):
     target = date.fromisoformat(d) if d else date.today()
-    return liturgical_for(target)
+    return liturgical_for(target, variant=variant)
 
 
 @api.get("/liturgical/calendar")
-async def liturgical_calendar(year: int, month: int):
-    return {"year": year, "month": month, "days": liturgical_month(year, month)}
+async def liturgical_calendar(year: int, month: int, variant: str = "roman"):
+    return {"year": year, "month": month, "variant": variant,
+            "days": liturgical_month(year, month, variant=variant)}
 
 
 # ---------- Rule of Life ----------
@@ -1092,7 +1096,11 @@ async def dashboard(user: User = Depends(get_current_user)):
     week_end_str = (today + timedelta(days=7)).isoformat()
 
     # Liturgical
-    lit = liturgical_for(today)
+    house_doc = await db.households.find_one({"household_id": h.household_id}, {"_id": 0})
+    variant = (house_doc or {}).get("calendar_variant", "roman")
+    if variant not in ("roman", "traditional"):
+        variant = "roman"
+    lit = liturgical_for(today, variant=variant)
 
     # Members
     members = await db.members.find({"household_id": h.household_id}, {"_id": 0}).to_list(50)
@@ -1194,7 +1202,7 @@ async def dashboard(user: User = Depends(get_current_user)):
     weekly_score = round((rule_pct + prayer_pct + task_pct + budget_pct) / 4)
 
     # Household details
-    house = await db.households.find_one({"household_id": h.household_id}, {"_id": 0})
+    house = house_doc
 
     return {
         "household": house,
@@ -1235,6 +1243,356 @@ async def dashboard(user: User = Depends(get_current_user)):
             "budget_pct": budget_pct,
         },
     }
+
+
+# ---------- Family Council (Weekly Meeting) ----------
+
+def _monday_of_week(d: date) -> date:
+    return d - timedelta(days=d.weekday())
+
+
+async def _build_agenda(h: "Household") -> dict:
+    today = date.today()
+    week_start = _monday_of_week(today)
+    last_week_start = week_start - timedelta(days=7)
+    last_week_end = week_start - timedelta(days=1)
+    next_week_end = week_start + timedelta(days=13)
+
+    # Prayer rhythm review (last week)
+    prayer_last_week = await db.prayer_logs.count_documents({
+        "household_id": h.household_id,
+        "log_date": {"$gte": last_week_start.isoformat(), "$lte": last_week_end.isoformat()},
+    })
+
+    # Rule check-ins last week
+    rule_ck_last_week = await db.rule_checkins.count_documents({
+        "household_id": h.household_id,
+        "checkin_date": {"$gte": last_week_start.isoformat(), "$lte": last_week_end.isoformat()},
+    })
+
+    # Tasks: completed last week + still open
+    tasks_open = await db.tasks.find(
+        {"household_id": h.household_id, "completed": False}, {"_id": 0}
+    ).sort("due_date", 1).to_list(50)
+    tasks_completed_last_week = await db.tasks.count_documents({
+        "household_id": h.household_id,
+        "completed": True,
+        "completed_at": {"$gte": last_week_start.isoformat()},
+    })
+    tasks_overdue = [t for t in tasks_open if t.get("due_date") and t["due_date"] < today.isoformat()]
+
+    # Budget overages this month
+    y, m = today.year, today.month
+    m_start = date(y, m, 1).isoformat()
+    m_end_d = date(y + 1, 1, 1) if m == 12 else date(y, m + 1, 1)
+    m_end = m_end_d.isoformat()
+    cats = await db.budget_categories.find({"household_id": h.household_id}, {"_id": 0}).to_list(100)
+    txns = await db.budget_transactions.find(
+        {"household_id": h.household_id, "txn_date": {"$gte": m_start, "$lt": m_end}}, {"_id": 0}
+    ).to_list(2000)
+    over_cats = []
+    for c in cats:
+        if not c.get("monthly_limit"):
+            continue
+        spent = sum(t["amount"] for t in txns if t.get("category_id") == c["category_id"])
+        if spent > c["monthly_limit"]:
+            over_cats.append({"name": c["name"], "spent": spent, "limit": c["monthly_limit"]})
+
+    # Goals
+    goals = await db.family_goals.find(
+        {"household_id": h.household_id, "completed": False}, {"_id": 0}
+    ).sort("created_at", -1).to_list(20)
+
+    # Upcoming events (next 14 days)
+    events = await db.events.find({
+        "household_id": h.household_id,
+        "event_date": {"$gte": today.isoformat(), "$lte": next_week_end.isoformat()},
+    }, {"_id": 0}).sort("event_date", 1).to_list(50)
+
+    # Liturgical reminders (notable feasts/solemnities in the next 14 days)
+    lit_reminders = []
+    house_doc = await db.households.find_one({"household_id": h.household_id}, {"_id": 0})
+    variant = (house_doc or {}).get("calendar_variant", "roman")
+    cursor = today
+    while cursor <= next_week_end:
+        ld = liturgical_for(cursor, variant=variant)
+        if ld["rank"] in ("solemnity", "feast"):
+            lit_reminders.append({"date": ld["date"], "name": ld["name"], "color": ld["color"], "rank": ld["rank"]})
+        cursor += timedelta(days=1)
+
+    return {
+        "week_start": week_start.isoformat(),
+        "last_week": {
+            "prayer_count": prayer_last_week,
+            "rule_checkins": rule_ck_last_week,
+            "tasks_completed": tasks_completed_last_week,
+        },
+        "tasks": {
+            "overdue": tasks_overdue,
+            "open_count": len(tasks_open),
+            "open": tasks_open[:10],
+        },
+        "budget_overages": over_cats,
+        "goals": goals[:5],
+        "upcoming_events": events,
+        "liturgical_reminders": lit_reminders[:8],
+    }
+
+
+@api.get("/council/agenda")
+async def council_agenda(user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    return await _build_agenda(h)
+
+
+class MeetingCreate(BaseModel):
+    week_start: Optional[str] = None  # YYYY-MM-DD (Monday)
+
+
+@api.post("/council/meeting")
+async def create_meeting(payload: MeetingCreate, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    week_start = payload.week_start or _monday_of_week(date.today()).isoformat()
+    agenda = await _build_agenda(h)
+    mid = make_id("mtg")
+    doc = {
+        "meeting_id": mid,
+        "household_id": h.household_id,
+        "week_start": week_start,
+        "agenda_snapshot": agenda,
+        "notes": "",
+        "decisions": "",
+        "assignments": [],   # [{member_id, title, due_date}]
+        "priorities": [],    # ["Pay tuition", "Plan retreat", ...]
+        "status": "draft",
+        "created_at": now_utc().isoformat(),
+        "finalized_at": None,
+    }
+    await db.meetings.insert_one(doc)
+    return {"meeting_id": mid}
+
+
+class MeetingUpdate(BaseModel):
+    notes: Optional[str] = None
+    decisions: Optional[str] = None
+    assignments: Optional[List[dict]] = None
+    priorities: Optional[List[str]] = None
+    status: Optional[str] = None
+
+
+@api.patch("/council/meeting/{meeting_id}")
+async def update_meeting(meeting_id: str, payload: MeetingUpdate, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    update = payload.model_dump(exclude_none=True)
+    if update:
+        await db.meetings.update_one(
+            {"meeting_id": meeting_id, "household_id": h.household_id}, {"$set": update}
+        )
+    return {"ok": True}
+
+
+@api.get("/council/meetings")
+async def list_meetings(user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    mts = await db.meetings.find(
+        {"household_id": h.household_id}, {"_id": 0}
+    ).sort("week_start", -1).to_list(50)
+    return {"meetings": mts}
+
+
+@api.get("/council/meeting/{meeting_id}")
+async def get_meeting(meeting_id: str, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    m = await db.meetings.find_one(
+        {"meeting_id": meeting_id, "household_id": h.household_id}, {"_id": 0}
+    )
+    if not m:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    return m
+
+
+@api.post("/council/meeting/{meeting_id}/finalize")
+async def finalize_meeting(meeting_id: str, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    m = await db.meetings.find_one(
+        {"meeting_id": meeting_id, "household_id": h.household_id}, {"_id": 0}
+    )
+    if not m:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    # Materialize assignments into Tasks
+    for a in (m.get("assignments") or []):
+        if not a.get("title"):
+            continue
+        await db.tasks.insert_one({
+            "task_id": make_id("task"),
+            "household_id": h.household_id,
+            "title": a["title"],
+            "due_date": a.get("due_date"),
+            "assigned_member_id": a.get("member_id"),
+            "category": "council",
+            "completed": False,
+            "completed_at": None,
+            "created_at": now_utc().isoformat(),
+            "source_meeting_id": meeting_id,
+        })
+    await db.meetings.update_one(
+        {"meeting_id": meeting_id},
+        {"$set": {"status": "held", "finalized_at": now_utc().isoformat()}},
+    )
+    return {"ok": True}
+
+
+@api.delete("/council/meeting/{meeting_id}")
+async def delete_meeting(meeting_id: str, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    await db.meetings.delete_one({"meeting_id": meeting_id, "household_id": h.household_id})
+    return {"ok": True}
+
+
+# ---------- Sacred Heart ----------
+
+class SacredHeartEnthrone(BaseModel):
+    enthroned_at: Optional[str] = None  # ISO date
+    notes: Optional[str] = None
+
+
+@api.get("/sacred-heart/state")
+async def sacred_heart_state(user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    house = await db.households.find_one({"household_id": h.household_id}, {"_id": 0})
+    eat = (house or {}).get("sacred_heart_enthroned_at")
+    rat = (house or {}).get("sacred_heart_renewal_at")
+    notes = (house or {}).get("sacred_heart_notes")
+    next_renewal = None
+    if eat:
+        try:
+            base = date.fromisoformat((rat or eat))
+            next_renewal = date(base.year + 1, base.month, base.day).isoformat()
+        except Exception:
+            pass
+    return {
+        "enthroned_at": eat,
+        "renewal_at": rat,
+        "notes": notes,
+        "next_renewal": next_renewal,
+        "is_enthroned": bool(eat),
+    }
+
+
+@api.post("/sacred-heart/enthrone")
+async def enthrone(payload: SacredHeartEnthrone, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    today_str = date.today().isoformat()
+    await db.households.update_one(
+        {"household_id": h.household_id},
+        {"$set": {
+            "sacred_heart_enthroned_at": payload.enthroned_at or today_str,
+            "sacred_heart_notes": payload.notes,
+        }},
+    )
+    return {"ok": True}
+
+
+@api.post("/sacred-heart/renew")
+async def renew(user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    today_str = date.today().isoformat()
+    await db.households.update_one(
+        {"household_id": h.household_id},
+        {"$set": {"sacred_heart_renewal_at": today_str}},
+    )
+    return {"ok": True}
+
+
+# ---------- Household Rhythms (recurring commitments) ----------
+
+class RhythmCreate(BaseModel):
+    name: str
+    cadence: str = "weekly"  # daily | weekly | monthly | quarterly | yearly
+    last_observed: Optional[str] = None
+    member_ids: List[str] = []
+    notes: Optional[str] = None
+
+
+class RhythmUpdate(BaseModel):
+    name: Optional[str] = None
+    cadence: Optional[str] = None
+    last_observed: Optional[str] = None
+    member_ids: Optional[List[str]] = None
+    notes: Optional[str] = None
+
+
+def _next_due(cadence: str, last_observed: Optional[str]) -> Optional[str]:
+    if not last_observed:
+        return None
+    try:
+        last = date.fromisoformat(last_observed)
+    except Exception:
+        return None
+    deltas = {
+        "daily": timedelta(days=1),
+        "weekly": timedelta(days=7),
+        "monthly": timedelta(days=30),
+        "quarterly": timedelta(days=91),
+        "yearly": timedelta(days=365),
+    }
+    nd = last + deltas.get(cadence, timedelta(days=7))
+    return nd.isoformat()
+
+
+@api.get("/rhythms")
+async def list_rhythms(user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    rhythms = await db.rhythms.find(
+        {"household_id": h.household_id}, {"_id": 0}
+    ).to_list(200)
+    for r in rhythms:
+        r["next_due"] = _next_due(r.get("cadence", "weekly"), r.get("last_observed"))
+    return {"rhythms": rhythms}
+
+
+@api.post("/rhythms")
+async def create_rhythm(payload: RhythmCreate, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    if payload.cadence not in ("daily", "weekly", "monthly", "quarterly", "yearly"):
+        raise HTTPException(status_code=400, detail="invalid cadence")
+    rid = make_id("rhy")
+    doc = {
+        "rhythm_id": rid,
+        "household_id": h.household_id,
+        **payload.model_dump(),
+        "created_at": now_utc().isoformat(),
+    }
+    await db.rhythms.insert_one(doc)
+    return {"rhythm_id": rid}
+
+
+@api.patch("/rhythms/{rhythm_id}")
+async def update_rhythm(rhythm_id: str, payload: RhythmUpdate, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    update = payload.model_dump(exclude_none=True)
+    if update:
+        await db.rhythms.update_one(
+            {"rhythm_id": rhythm_id, "household_id": h.household_id}, {"$set": update}
+        )
+    return {"ok": True}
+
+
+@api.delete("/rhythms/{rhythm_id}")
+async def delete_rhythm(rhythm_id: str, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    await db.rhythms.delete_one({"rhythm_id": rhythm_id, "household_id": h.household_id})
+    return {"ok": True}
+
+
+@api.post("/rhythms/{rhythm_id}/observe")
+async def observe_rhythm(rhythm_id: str, user: User = Depends(get_current_user)):
+    h = await require_household(user)
+    await db.rhythms.update_one(
+        {"rhythm_id": rhythm_id, "household_id": h.household_id},
+        {"$set": {"last_observed": date.today().isoformat()}},
+    )
+    return {"ok": True}
 
 
 # ---------- Misc ----------

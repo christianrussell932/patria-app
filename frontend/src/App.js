@@ -13,6 +13,7 @@ import MissionGoals from "@/pages/MissionGoals";
 import Schedule from "@/pages/Schedule";
 import Members from "@/pages/Household";
 import Settings from "@/pages/Settings";
+import Council from "@/pages/Council";
 import AppShell from "@/components/AppShell";
 
 function ProtectedRoute({ children, requireHousehold = true }) {
@@ -51,6 +52,7 @@ function AppRouter() {
 
       {/* New IA */}
       <Route path="/dashboard" element={<ProtectedRoute><AppShell><Dashboard /></AppShell></ProtectedRoute>} />
+      <Route path="/council" element={<ProtectedRoute><AppShell><Council /></AppShell></ProtectedRoute>} />
       <Route path="/spiritual" element={<ProtectedRoute><AppShell><SpiritualLife /></AppShell></ProtectedRoute>} />
       <Route path="/order" element={<ProtectedRoute><AppShell><HouseholdOrder /></AppShell></ProtectedRoute>} />
       <Route path="/budget" element={<ProtectedRoute><AppShell><Budget /></AppShell></ProtectedRoute>} />

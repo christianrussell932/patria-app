@@ -14,10 +14,18 @@ export default function Calendar({ embedded = false }) {
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [days, setDays] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [variant, setVariant] = useState("roman");
 
   useEffect(() => {
-    api.get(`/liturgical/calendar?year=${year}&month=${month}`).then((r) => setDays(r.data.days));
-  }, [year, month]);
+    api.get("/household/me").then((r) => {
+      const v = r.data.household?.calendar_variant || "roman";
+      setVariant(v);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    api.get(`/liturgical/calendar?year=${year}&month=${month}&variant=${variant}`).then((r) => setDays(r.data.days));
+  }, [year, month, variant]);
 
   const prev = () => {
     if (month === 1) { setYear(year - 1); setMonth(12); } else setMonth(month - 1);
@@ -32,6 +40,9 @@ export default function Calendar({ embedded = false }) {
         <div>
           {!embedded && <div className="overline mb-2">Liturgical Calendar</div>}
           <h1 className="font-serif text-3xl md:text-4xl tracking-tighter">{MONTHS[month - 1]} <span className="text-muted-foreground">{year}</span></h1>
+          <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
+            {variant === "traditional" ? "Traditional Roman calendar" : "Roman calendar"}
+          </div>
         </div>
         <div className="flex gap-2 font-mono">
           <button onClick={prev} data-testid="calendar-prev-button" className="border border-border px-3 py-1.5 text-sm hover:bg-secondary">←</button>

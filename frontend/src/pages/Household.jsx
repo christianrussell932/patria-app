@@ -91,24 +91,7 @@ export default function Members() {
         </Panel>
       </div>
 
-      {/* Roles */}
-      {household?.roles && Object.values(household.roles).some(Boolean) && (
-        <Panel testId="members-roles-panel" className="mb-10" label="Roles">
-          <ul className="grid md:grid-cols-2 gap-3">
-            {members.map((m) => {
-              const role = household.roles?.[m.member_id];
-              if (!role) return null;
-              return (
-                <li key={m.member_id} className="flex items-center gap-3 border-b border-border pb-2">
-                  <span className={`w-7 h-7 flex items-center justify-center text-xs font-mono ${memberTileClass(m.color)}`}>{initials(m.name)}</span>
-                  <span className="text-sm font-serif">{m.name}</span>
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground ml-auto">{role}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </Panel>
-      )}
+      {/* Roles are managed in Mission & Goals; MemberRow already displays each member's role. */}
 
       {/* Parents */}
       <section className="mb-10">

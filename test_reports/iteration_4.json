@@ -1,0 +1,49 @@
+{
+  "summary": "Patria v0.3 (Council, Sacred Heart, Rhythms, Liturgical naming, calendar variants, Crest motif, removed duplicate Roles panel) tested end-to-end. Backend: 93/93 pytest cases PASS (68 prior + 25 new). New v3 suite covers Council agenda+meeting CRUD+finalize (creates Tasks with category='council', sets status=held), Sacred Heart state/enthrone/renew (next_renewal +1y), Rhythms CRUD with cadence validation + observe + computed next_due, Liturgical naming (no more generic 'Feria' on weekdays — got 'Tuesday — II Week in Ordinary Time' for 2026-01-20), Traditional variant overlay (Septuagesima season for 2026-02-01, 'after Epiphany' ferial names, Christmas solemnity in both variants, Ash Wed 2026-02-18 with fasting+abstinence), and Dashboard respects household.calendar_variant. Frontend (Playwright with demo session): sidebar has 8 nav items including nav-family-council-link; Dashboard shows 'Household health' (NOT 'Weekly score'), 'reflective, not a trophy' subtitle, and 'This week's council' panel; /council page renders agenda (Last week in review / Looking ahead / Goals), Begin button creates draft meeting with full working session (priorities, assignments, notes, decisions, finalize); Spiritual Life shows 4 tabs (calendar, prayer, seasons, sacred-heart) and ?tab=sacred-heart deep-links to the Sacred Heart hero; enthronement modal opens with date/notes inputs; ceremony shows Form A (priest) + Form B (family) + Act of Consecration; Schedule has + Rhythm button → modal with all 5 cadence buttons (daily/weekly/monthly/quarterly/yearly); Calendar page surfaces 'Roman calendar' variant label; Members page has NO standalone 'Roles' heading (only 'The Aquinas Household'); legacy /today redirects to /dashboard. Demo Council draft meeting cleaned up after test.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/council/meeting/{id}", "issue": "MeetingUpdate.assignments accepts arbitrary dict shape — no validation that each item has member_id/title/due_date. Garbage shapes would still be materialized in finalize (with .get fallback). Low risk; consider Pydantic Assignment model."},
+      {"endpoint": "/api/council/meeting/{id}/finalize", "issue": "Idempotency: calling finalize twice creates duplicate Tasks. Consider checking status!='held' first or storing source_meeting_id uniqueness."},
+      {"endpoint": "/api/rhythms", "issue": "next_due uses fixed 30/91/365-day deltas instead of calendar-aware month/quarter/year math (e.g., last_observed 2026-01-31 monthly → next_due 2026-03-02 not 2026-02-28). Documented; UI tolerates."},
+      {"endpoint": "/api/sacred-heart/enthrone", "issue": "Cannot un-enthrone (no DELETE). Likely intentional but worth confirming."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Dashboard liturgical strip", "issues": ["The .rank label 'FERIA' (small-caps chip) is still displayed alongside the now-correct name 'Monday — VI Week of Easter'. Name is right but the chip reads 'FERIA', which could read as the very generic label the v0.3 brief asked to retire. Consider hiding the rank chip on ferial days, or relabel to e.g. 'WEEKDAY' / season name."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_patria_v3_modules.py",
+    "/app/backend/tests/test_patria_modules.py",
+    "/app/backend/tests/test_catholic_household_os.py",
+    "/app/test_reports/pytest/v3_results.xml",
+    "/app/test_reports/pytest/full_results.xml"
+  ],
+  "action_items": [
+    "(Polish) Hide or relabel the 'FERIA' rank chip on Dashboard liturgical strip — the user-facing name is now correct, but the small-caps chip still says FERIA on weekdays.",
+    "(Hardening) Make POST /api/council/meeting/{id}/finalize idempotent (skip if status=='held') so re-clicking Finalize doesn't duplicate Tasks.",
+    "(Optional) Tighten MeetingUpdate.assignments with a Pydantic model {member_id:str, title:str, due_date:Optional[str]}.",
+    "(Optional) Use calendar-aware math for rhythm next_due (monthly/quarterly/yearly should add calendar months, not fixed days)."
+  ],
+  "critical_code_review_comments": [
+    "server.py is now 1625 lines (up from 1255). Past time to split into routers/ — council, sacred_heart, rhythms, liturgical, budget, schedule, tasks, goals, dashboard, household. The composition root pattern in main agent's last review still applies and is now more urgent.",
+    "finalize_meeting is not idempotent — a double-click in the UI will double-insert Tasks because there's no status guard. Recommend: `if m.get('status') == 'held': return {'ok': True, 'already': True}` before materializing assignments.",
+    "_next_due uses fixed timedelta(days=30/91/365) — drifts over months/years. Use dateutil.relativedelta or manual month/year math.",
+    "_build_agenda walks `cursor <= next_week_end` calling liturgical_for per day — 14 sync calls. Fine today (it's cheap), but consider caching liturgical_month results if traffic grows.",
+    "Sacred Heart 'next_renewal' assumes Feb 29 anniversary will not throw — date(year+1, 2, 29) will raise on non-leap years. Wrap in try/except or use Feb 28 fallback."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_patria_v3_modules.py (new — 25 tests)"
+  ],
+  "success_rate": {"backend": "100% (93/93)", "frontend": "100% of v0.3 requested flows"},
+  "test_credentials": "Demo session: SESSION_TOKEN=demo_session_patria, USER_ID=demo-user-patria, household_id=hh_demo_patria (Aquinas Household). Bearer for backend; session_token cookie for frontend. CRUD tests bootstrap an isolated household with calendar_variant=traditional and clean up after.",
+  "seed_data_creation": "Only ephemeral test data prefixed TEST_ inside the isolated v3 household which is fully torn down by the fixture (households, members, meetings, rhythms, tasks, events, family_goals, rules, rule_checkins, prayer_logs, budget_categories, budget_transactions). Playwright created one draft Council meeting in demo HH and deleted it via API in the same script.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Sidebar testid pattern unchanged: nav-${label.toLowerCase().replace(/\\s+/g,'-').replace(/&/g,'and')}-link. 8 modules now: nav-dashboard-link, nav-family-council-link, nav-spiritual-life-link, nav-household-order-link, nav-budget-and-stewardship-link, nav-mission-and-goals-link, nav-schedule-link, nav-members-link. Sacred Heart is INTENTIONALLY optional — do not surface in onboarding. Spiritual Life tabs: calendar, prayer, seasons, sacred-heart; ?tab= deep-link is preserved. Council page testids: council-page, council-start-meeting-button/council-empty-begin-button, council-priority-input/add, council-assignment-{title|member|due}-input + add, council-notes-input, council-decisions-input, council-finalize-button, council-past-{meeting_id}. Sacred Heart: sacred-heart-page, -enthrone-button, -renew-button, -modal, -date-input, -notes-input, -submit, -cancel, -form-priest, -form-family. Schedule rhythms: schedule-add-rhythm-button, schedule-rhythm-modal, schedule-rhythm-{name|last|notes}-input, schedule-rhythm-cadence-{daily|weekly|monthly|quarterly|yearly}, schedule-rhythm-{cancel|submit}, schedule-rhythm-{id}, -observe-{id}, -remove-{id}. Liturgical: GET /api/liturgical/today supports ?d=YYYY-MM-DD and ?variant=roman|traditional; ferial names now include weekday + season week. Ash Wed 2026=2026-02-18, Easter 2026=2026-04-05, First Advent 2025=2025-11-30.",
+  "rca of the issue": "No bugs reproduced. The only visible concern is that the Dashboard liturgical strip continues to print the rank token 'FERIA' as a small-caps chip even though the main .name (e.g., 'Monday — VI Week of Easter') is now correctly composed. Backend output is correct (rank='feria' is the canonical class for weekday); UI just needs to either hide that chip on ferial days or relabel it. Filed under action_items / design_issues for main agent."
+}

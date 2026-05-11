@@ -10,22 +10,27 @@ export default function Schedule() {
   const [events, setEvents] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [members, setMembers] = useState([]);
+  const [rhythms, setRhythms] = useState([]);
   const [showEvent, setShowEvent] = useState(false);
   const [eventDraft, setEventDraft] = useState({ title: "", event_date: "", event_time: "", type: "family", notes: "", member_ids: [] });
   const [showTask, setShowTask] = useState(false);
   const [taskDraft, setTaskDraft] = useState({ title: "", due_date: "", assigned_member_id: "", category: "general" });
+  const [showRhythm, setShowRhythm] = useState(false);
+  const [rhythmDraft, setRhythmDraft] = useState({ name: "", cadence: "weekly", last_observed: "", notes: "" });
 
   const refresh = async () => {
     const today = new Date().toISOString().slice(0, 10);
     const inAMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const [e, t, hm] = await Promise.all([
+    const [e, t, hm, ry] = await Promise.all([
       api.get(`/schedule/events?start=${today}&end=${inAMonth}`),
       api.get("/tasks"),
       api.get("/household/me"),
+      api.get("/rhythms"),
     ]);
     setEvents(e.data.events);
     setTasks(t.data.tasks);
     setMembers(hm.data.members);
+    setRhythms(ry.data.rhythms);
   };
 
   useEffect(() => { refresh(); }, []);
@@ -65,6 +70,30 @@ export default function Schedule() {
     refresh();
   };
 
+  const addRhythm = async () => {
+    if (!rhythmDraft.name.trim()) return;
+    await api.post("/rhythms", {
+      name: rhythmDraft.name,
+      cadence: rhythmDraft.cadence,
+      last_observed: rhythmDraft.last_observed || null,
+      notes: rhythmDraft.notes || null,
+    });
+    setShowRhythm(false);
+    setRhythmDraft({ name: "", cadence: "weekly", last_observed: "", notes: "" });
+    refresh();
+  };
+
+  const observeRhythm = async (rid) => {
+    await api.post(`/rhythms/${rid}/observe`);
+    refresh();
+  };
+
+  const removeRhythm = async (rid) => {
+    if (!confirm("Remove this rhythm?")) return;
+    await api.delete(`/rhythms/${rid}`);
+    refresh();
+  };
+
   // Group events by date
   const grouped = events.reduce((acc, e) => {
     (acc[e.event_date] = acc[e.event_date] || []).push(e);
@@ -77,12 +106,48 @@ export default function Schedule() {
         <div>
           <div className="overline mb-2">Schedule</div>
           <h1 className="font-serif text-4xl md:text-5xl tracking-tighter">The next thirty days.</h1>
+          <p className="mt-2 text-sm text-muted-foreground italic max-w-xl">
+            One-off events. Standing rhythms. Tasks. The household&rsquo;s execution layer — kept quiet.
+          </p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowEvent(true)} data-testid="schedule-add-event-button" className="bg-primary text-primary-foreground text-sm px-4 py-2">+ Event</button>
           <button onClick={() => setShowTask(true)} data-testid="schedule-add-task-button" className="border border-border text-sm px-4 py-2">+ Task</button>
+          <button onClick={() => setShowRhythm(true)} data-testid="schedule-add-rhythm-button" className="border border-border text-sm px-4 py-2">+ Rhythm</button>
         </div>
       </header>
+
+      {/* Rhythms */}
+      <Panel testId="schedule-rhythms-panel" className="mb-6" label="Household rhythms" hint="Recurring commitments the family keeps — cyclical, seasonal, intentional. Not a to-do list.">
+        {rhythms.length === 0 ? (
+          <div className="text-sm text-muted-foreground py-2">
+            No rhythms yet. Common ones: <em>weekly date night, monthly Confession, quarterly retreat, yearly pilgrimage.</em>
+          </div>
+        ) : (
+          <ul className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-4">
+            {rhythms.map((r) => {
+              const overdue = r.next_due && r.next_due < new Date().toISOString().slice(0, 10);
+              return (
+                <li key={r.rhythm_id} className="border-b border-border pb-3 group" data-testid={`schedule-rhythm-${r.rhythm_id}`}>
+                  <div className="flex items-start gap-3">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground w-16 mt-1">{r.cadence}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-serif text-base">{r.name}</div>
+                      {r.notes && <div className="text-xs text-muted-foreground mt-0.5 truncate">{r.notes}</div>}
+                      <div className={`font-mono text-[10px] mt-1 ${overdue ? "text-liturgical-red" : "text-muted-foreground"}`}>
+                        {r.last_observed ? `last · ${r.last_observed}` : "never observed"}
+                        {r.next_due && ` · next · ${r.next_due}`}
+                      </div>
+                    </div>
+                    <button onClick={() => observeRhythm(r.rhythm_id)} data-testid={`schedule-rhythm-observe-${r.rhythm_id}`} className="text-xs border border-border px-2 py-1 hover:bg-secondary">Mark</button>
+                    <button onClick={() => removeRhythm(r.rhythm_id)} data-testid={`schedule-rhythm-remove-${r.rhythm_id}`} className="text-xs text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100">×</button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Panel>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Timeline */}
@@ -214,6 +279,29 @@ export default function Schedule() {
             <div className="flex justify-end gap-3 mt-8">
               <button onClick={() => setShowTask(false)} className="text-sm text-muted-foreground" data-testid="schedule-task-cancel">Cancel</button>
               <button onClick={addTask} data-testid="schedule-task-submit" className="bg-primary text-primary-foreground px-4 py-2 text-sm">Add task</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRhythm && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" data-testid="schedule-rhythm-modal">
+          <div className="bg-background border border-border max-w-md w-full p-8">
+            <h2 className="font-serif text-2xl mb-2">New rhythm</h2>
+            <p className="text-xs text-muted-foreground mb-6">A recurring commitment the household keeps — not a one-off task.</p>
+            <input autoFocus data-testid="schedule-rhythm-name-input" placeholder="e.g., Confession · Date night · Family retreat" value={rhythmDraft.name} onChange={(e) => setRhythmDraft({ ...rhythmDraft, name: e.target.value })} className="w-full bg-transparent border-b border-border focus:border-foreground outline-none py-2 text-base mb-4" />
+            <div className="overline mb-2">Cadence</div>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {["daily", "weekly", "monthly", "quarterly", "yearly"].map((c) => (
+                <button key={c} data-testid={`schedule-rhythm-cadence-${c}`} onClick={() => setRhythmDraft({ ...rhythmDraft, cadence: c })} className={`px-3 py-1.5 text-xs border ${rhythmDraft.cadence === c ? "border-foreground" : "border-border text-muted-foreground"}`}>{c}</button>
+              ))}
+            </div>
+            <div className="overline mb-2">Last observed (optional)</div>
+            <input type="date" data-testid="schedule-rhythm-last-input" value={rhythmDraft.last_observed} onChange={(e) => setRhythmDraft({ ...rhythmDraft, last_observed: e.target.value })} className="bg-transparent border-b border-border focus:border-foreground outline-none py-2 font-mono mb-4" />
+            <textarea rows={2} data-testid="schedule-rhythm-notes-input" placeholder="Notes" value={rhythmDraft.notes} onChange={(e) => setRhythmDraft({ ...rhythmDraft, notes: e.target.value })} className="w-full bg-transparent border-b border-border focus:border-foreground outline-none py-2 text-sm resize-none" />
+            <div className="flex justify-end gap-3 mt-8">
+              <button onClick={() => setShowRhythm(false)} className="text-sm text-muted-foreground" data-testid="schedule-rhythm-cancel">Cancel</button>
+              <button onClick={addRhythm} data-testid="schedule-rhythm-submit" className="bg-primary text-primary-foreground px-4 py-2 text-sm">Add rhythm</button>
             </div>
           </div>
         </div>
