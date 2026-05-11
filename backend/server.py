@@ -1419,6 +1419,8 @@ async def finalize_meeting(meeting_id: str, user: User = Depends(get_current_use
     )
     if not m:
         raise HTTPException(status_code=404, detail="Meeting not found")
+    if m.get("status") == "held":
+        return {"ok": True, "already": True}
     # Materialize assignments into Tasks
     for a in (m.get("assignments") or []):
         if not a.get("title"):
@@ -1467,7 +1469,11 @@ async def sacred_heart_state(user: User = Depends(get_current_user)):
     if eat:
         try:
             base = date.fromisoformat((rat or eat))
-            next_renewal = date(base.year + 1, base.month, base.day).isoformat()
+            # Anniversary +1y — handle Feb 29 on non-leap years by using Feb 28
+            try:
+                next_renewal = date(base.year + 1, base.month, base.day).isoformat()
+            except ValueError:
+                next_renewal = date(base.year + 1, base.month, 28).isoformat()
         except Exception:
             pass
     return {

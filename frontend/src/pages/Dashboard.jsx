@@ -35,7 +35,9 @@ export default function Dashboard() {
               </h1>
               <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
                 <span className={liturgicalText(lit.color)}>● {lit.season}</span>
-                <span className="font-mono text-xs uppercase tracking-wider">{lit.rank}</span>
+                {lit.rank !== "feria" && (
+                  <span className="font-mono text-xs uppercase tracking-wider">{lit.rank}</span>
+                )}
                 {lit.fasting && <span className="text-liturgical-violet">FAST</span>}
                 {lit.abstinence && <span className="text-liturgical-red">ABSTINENCE</span>}
               </div>
