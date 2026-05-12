@@ -41,6 +41,27 @@ A structured operating system for intentional Catholic family life. Repositioned
 ### v0.3 — Refinement
 - Family Council module, Sacred Heart tab (optional), liturgical engine v2 (proper ferial naming, Traditional Roman overlay), Household Rhythms, Crest motif. 93/93 backend + 100% frontend
 
+### v0.7 — Budget & Stewardship, substantially expanded (Feb 12, 2026)
+A round focused on making the Budget module *genuinely usable* for monthly household stewardship, while strictly avoiding fintech bloat (no pie charts, no bank sync, no debt-snowball calculators).
+
+**Backend (additive — no breaking changes):**
+- Categories: new optional `group` field with 8 stable keys (giving · housing · food · transportation · insurance · debt · savings · other); legacy categories silently default to `other`.
+- New endpoint `POST /api/budget/seed-defaults` — seeds 21 starter categories across the 7 stewardship groups. Idempotent.
+- New CRUD `/api/budget/income-sources` with `{name, source_type, expected_amount, received_amount, month, year, recurring, notes}`. Listing a month with no sources auto-carries **recurring** sources from the most recent prior month (expected preserved, received reset to 0, marked `carried_from=YYYY-MM`). One-off sources (gift, tax refund, miscellaneous) never carry forward.
+- New CRUD `/api/budget/financial-goals` with `{goal_type ∈ savings|debt_payoff|giving|other, target_amount, current_amount, target_date, monthly_contribution}`. Includes legacy `savings_goals` inline with `legacy=true` flag (gradual migration — reads from both, writes to the new collection).
+- `/api/budget/summary` now exposes `income_expected`, `income_from_sources`, `income_from_transactions`, and per-category `over_by`.
+
+**Frontend (refactor — `Budget.jsx` split into focused components):**
+- New layout: header → 4-stat summary strip → Income panel + Financial Goals panel (side-by-side) → grouped Budget Categories with A-G section headers → Ledger + Stewardship quotes.
+- New components: `pages/budget/IncomePanel.jsx`, `pages/budget/FinancialGoalsPanel.jsx`, `pages/budget/CategoryGroupsPanel.jsx`.
+- Spending category line clarified: **`Spent $X · Allocated $Y`** with optional **`· Over by $Z`** in liturgical red. $0-allocated categories show a muted *Set allocation* prompt.
+- "Start with default categories" CTA appears when categories list is empty.
+- Empty-allocation categories rendered muted so the page stays calm even with many starter rows.
+- Debt-payoff goals render the spec's exact copy: *"$4,200 remaining of $8,000 original balance · Target: May 2027 · $350/mo"*.
+
+**Tests (167/167 green):**
+- 13 new tests in `test_patria_v7_budget.py`: default seed idempotency, group field, income recurring auto-carry (and non-recurring NOT carrying), financial goal CRUD + legacy mapping, `over_by` per category.
+
 ### v0.6 — Optional memorials surfaced as secondary identity (Feb 12, 2026)
 - **API contract:** every `/api/liturgical/today` and `/api/liturgical/calendar` response now includes `optional_memorials: [{name, color}]`. Multiple saints per day supported (e.g., May 12 → Sts. Nereus & Achilleus + St. Pancras).
 - **Display hierarchy:** the ferial / Sunday name stays primary; saints surface in their own dashboard slot ("Also commemorated: …") in their liturgical colour. `season_label` stays pure structural metadata (season + week). Higher-rank celebrations (feast / solemnity / obligatory memorial) suppress optionals so the day's identity stays focused.

@@ -1,9 +1,23 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import Panel from "@/components/Panel";
+import IncomePanel from "@/pages/budget/IncomePanel";
+import FinancialGoalsPanel from "@/pages/budget/FinancialGoalsPanel";
+import CategoryGroupsPanel from "@/pages/budget/CategoryGroupsPanel";
 
 const COLORS = ["green", "violet", "white", "red", "rose", "slate"];
 const fmtMoney = (n) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n || 0);
+
+const CATEGORY_GROUPS = [
+  { key: "giving",         label: "Giving" },
+  { key: "housing",        label: "Housing & Utilities" },
+  { key: "food",           label: "Food & Household" },
+  { key: "transportation", label: "Transportation" },
+  { key: "insurance",      label: "Insurance & Health" },
+  { key: "debt",           label: "Debt & Obligations" },
+  { key: "savings",        label: "Savings & Goals" },
+  { key: "other",          label: "Custom" },
+];
 
 const PRINCIPLES = [
   { ref: "Mt 6:21", text: "“Where your treasure is, there will your heart be also.”" },
@@ -13,43 +27,72 @@ const PRINCIPLES = [
 ];
 
 export default function Budget() {
-  const [summary, setSummary] = useState(null);
-  const [savings, setSavings] = useState([]);
-  const [txns, setTxns] = useState([]);
   const today = new Date();
   const [year] = useState(today.getFullYear());
   const [month] = useState(today.getMonth() + 1);
+  const [summary, setSummary] = useState(null);
+  const [income, setIncome] = useState({ sources: [], expected_total: 0, received_total: 0 });
+  const [fgoals, setFgoals] = useState([]);
+  const [txns, setTxns] = useState([]);
 
-  // Modals
   const [showCat, setShowCat] = useState(false);
-  const [catDraft, setCatDraft] = useState({ name: "", monthly_limit: "", color: "green", kind: "expense" });
+  const [catDraft, setCatDraft] = useState({ name: "", monthly_limit: "", color: "green", kind: "expense", group: "other" });
   const [showTxn, setShowTxn] = useState(false);
   const [txnDraft, setTxnDraft] = useState({ amount: "", type: "expense", category_id: "", note: "" });
-  const [showSg, setShowSg] = useState(false);
-  const [sgDraft, setSgDraft] = useState({ name: "", target_amount: "", current_amount: "0", color: "green", deadline: "" });
 
   const refresh = async () => {
-    const [s, sg, t] = await Promise.all([
+    const [s, inc, fg, t] = await Promise.all([
       api.get(`/budget/summary?year=${year}&month=${month}`),
-      api.get("/budget/savings-goals"),
+      api.get(`/budget/income-sources?year=${year}&month=${month}`),
+      api.get(`/budget/financial-goals`),
       api.get(`/budget/transactions?year=${year}&month=${month}`),
     ]);
     setSummary(s.data);
-    setSavings(sg.data.goals);
+    setIncome(inc.data);
+    setFgoals(fg.data.goals);
     setTxns(t.data.transactions);
   };
   useEffect(() => { refresh(); }, []);
+
+  const seedDefaults = async () => {
+    await api.post("/budget/seed-defaults", {});
+    refresh();
+  };
+
+  const handleIncome = async (action, payload) => {
+    if (action === "create") await api.post("/budget/income-sources", { ...payload, month, year });
+    if (action === "update") {
+      const { source_id, ...rest } = payload;
+      await api.patch(`/budget/income-sources/${source_id}`, rest);
+    }
+    if (action === "delete") await api.delete(`/budget/income-sources/${payload.source_id}`);
+    refresh();
+  };
+
+  const handleFgoal = async (action, payload) => {
+    if (action === "create") await api.post("/budget/financial-goals", payload);
+    if (action === "update") {
+      const { goal_id, ...rest } = payload;
+      await api.patch(`/budget/financial-goals/${goal_id}`, rest);
+    }
+    if (action === "delete") await api.delete(`/budget/financial-goals/${payload.goal_id}`);
+    if (action === "update_legacy") {
+      const { goal_id, ...rest } = payload;
+      await api.patch(`/budget/savings-goals/${goal_id}`, rest);
+    }
+    if (action === "delete_legacy") await api.delete(`/budget/savings-goals/${payload.goal_id}`);
+    refresh();
+  };
 
   const addCat = async () => {
     if (!catDraft.name.trim()) return;
     await api.post("/budget/categories", {
       name: catDraft.name,
       monthly_limit: parseFloat(catDraft.monthly_limit) || 0,
-      color: catDraft.color,
-      kind: catDraft.kind,
+      color: catDraft.color, kind: catDraft.kind, group: catDraft.group,
     });
     setShowCat(false);
-    setCatDraft({ name: "", monthly_limit: "", color: "green", kind: "expense" });
+    setCatDraft({ name: "", monthly_limit: "", color: "green", kind: "expense", group: "other" });
     refresh();
   };
 
@@ -77,28 +120,10 @@ export default function Budget() {
     refresh();
   };
 
-  const addSg = async () => {
-    if (!sgDraft.name.trim() || !sgDraft.target_amount) return;
-    await api.post("/budget/savings-goals", {
-      name: sgDraft.name,
-      target_amount: parseFloat(sgDraft.target_amount),
-      current_amount: parseFloat(sgDraft.current_amount) || 0,
-      color: sgDraft.color,
-      deadline: sgDraft.deadline || null,
-    });
-    setShowSg(false);
-    setSgDraft({ name: "", target_amount: "", current_amount: "0", color: "green", deadline: "" });
-    refresh();
-  };
-
-  const updateSg = async (goal_id, amount) => {
-    await api.patch(`/budget/savings-goals/${goal_id}`, { current_amount: amount });
-    refresh();
-  };
-
-  const removeSg = async (goal_id) => {
-    if (!confirm("Remove this goal?")) return;
-    await api.delete(`/budget/savings-goals/${goal_id}`);
+  const promptSetLimit = async (c) => {
+    const v = prompt(`Monthly allocation for "${c.name}" (USD):`, c.monthly_limit || "");
+    if (v === null) return;
+    await api.patch(`/budget/categories/${c.category_id}`, { monthly_limit: parseFloat(v) || 0 });
     refresh();
   };
 
@@ -106,9 +131,11 @@ export default function Budget() {
 
   const dt = new Date(year, month - 1, 1);
   const monthName = dt.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const hasCategories = summary.categories.length > 0;
 
   return (
     <div className="max-w-7xl mx-auto px-6 md:px-12 py-10 md:py-12" data-testid="budget-page">
+      {/* Header */}
       <header className="border-b border-border pb-6 mb-10 flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="overline mb-2">Budget & Stewardship</div>
@@ -117,101 +144,68 @@ export default function Budget() {
             “The earth is the Lord&rsquo;s and everything in it.” — Ps 24:1
           </p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => setShowTxn(true)} data-testid="budget-add-txn-button" className="bg-primary text-primary-foreground text-sm px-4 py-2">+ Transaction</button>
-          <button onClick={() => setShowCat(true)} data-testid="budget-add-category-button" className="border border-border text-sm px-4 py-2">+ Category</button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setShowTxn(true)}
+            data-testid="budget-add-txn-button"
+            className="bg-primary text-primary-foreground text-sm px-4 py-2"
+          >+ Transaction</button>
+          <button
+            onClick={() => setShowCat(true)}
+            data-testid="budget-add-category-button"
+            className="border border-border text-sm px-4 py-2"
+          >+ Category</button>
         </div>
       </header>
 
-      {/* Top stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-px bg-border border border-border mb-10">
-        <BigStat label="Income" value={fmtMoney(summary.income)} />
-        <BigStat label="Expenses" value={fmtMoney(summary.expense)} />
-        <BigStat label="Given" value={fmtMoney(summary.giving)} sub={`${summary.tithe_pct}% of income`} accent="liturgical-rose" />
-        <BigStat label="Net" value={fmtMoney(summary.net)} accent={summary.net >= 0 ? "liturgical-green" : "liturgical-red"} />
+      {/* Summary strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border border border-border mb-10" data-testid="budget-summary-strip">
+        <BigStat
+          label="Income"
+          value={fmtMoney(summary.income)}
+          sub={summary.income_expected > 0 ? `${fmtMoney(summary.income_expected)} expected` : null}
+          testId="budget-stat-income"
+        />
+        <BigStat label="Expenses" value={fmtMoney(summary.expense)} testId="budget-stat-expense" />
+        <BigStat
+          label="Given"
+          value={fmtMoney(summary.giving)}
+          sub={`${summary.tithe_pct}% of income`}
+          accent="liturgical-rose"
+          testId="budget-stat-giving"
+        />
+        <BigStat
+          label="Net"
+          value={fmtMoney(summary.net)}
+          accent={summary.net >= 0 ? "liturgical-green" : "liturgical-red"}
+          testId="budget-stat-net"
+        />
       </div>
 
+      {/* Row: Income + Financial Goals */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
+        <div className="lg:col-span-7">
+          <IncomePanel data={income} monthName={monthName} onChange={handleIncome} />
+        </div>
+        <div className="lg:col-span-5">
+          <FinancialGoalsPanel goals={fgoals} onChange={handleFgoal} />
+        </div>
+      </div>
+
+      {/* Grouped budget categories */}
+      <div className="mb-10">
+        <CategoryGroupsPanel
+          categories={summary.categories}
+          hasCategories={hasCategories}
+          onSeedDefaults={seedDefaults}
+          onAddCategory={() => setShowCat(true)}
+          onRemoveCategory={removeCat}
+          onUpdateLimit={promptSetLimit}
+        />
+      </div>
+
+      {/* Ledger + Stewardship */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Categories */}
-        <Panel testId="budget-categories-panel" className="lg:col-span-7" label="Spending categories">
-          {summary.categories.length === 0 ? (
-            <div className="text-sm text-muted-foreground py-6">
-              No categories yet. <button onClick={() => setShowCat(true)} className="underline" data-testid="budget-empty-add-category">Create one →</button>
-            </div>
-          ) : (
-            <ul className="divide-y divide-border">
-              {summary.categories.map((c) => {
-                const pct = Math.min(100, c.pct);
-                const over = c.pct > 100;
-                return (
-                  <li key={c.category_id} className="py-3" data-testid={`budget-category-${c.category_id}`}>
-                    <div className="flex items-center justify-between gap-3 text-sm">
-                      <div className="flex items-center gap-3">
-                        <span className={`w-1 h-5 bg-liturgical-${c.color || "green"}`} />
-                        <span>{c.name}</span>
-                        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{c.kind}</span>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <span className="font-mono text-xs">
-                          {fmtMoney(c.spent)} <span className="text-muted-foreground">/ {fmtMoney(c.monthly_limit)}</span>
-                        </span>
-                        <button onClick={() => removeCat(c.category_id)} data-testid={`budget-remove-category-${c.category_id}`} className="text-xs text-muted-foreground hover:text-destructive">×</button>
-                      </div>
-                    </div>
-                    <div className="h-px bg-border mt-2 relative">
-                      <div className={`absolute left-0 top-0 h-px ${over ? "bg-liturgical-red" : `bg-liturgical-${c.color || "green"}`}`} style={{ width: `${pct}%` }} />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Panel>
-
-        {/* Savings goals */}
-        <Panel
-          testId="budget-savings-panel"
-          className="lg:col-span-5"
-          label="Savings goals"
-          action={<button onClick={() => setShowSg(true)} data-testid="budget-add-savings-button" className="text-xs text-muted-foreground hover:text-foreground">+ Add</button>}
-        >
-          {savings.length === 0 ? (
-            <div className="text-sm text-muted-foreground py-2">No goals yet.</div>
-          ) : (
-            <ul className="space-y-5">
-              {savings.map((g) => {
-                const pct = Math.min(100, Math.round((g.current_amount / g.target_amount) * 100));
-                return (
-                  <li key={g.goal_id} data-testid={`budget-savings-${g.goal_id}`}>
-                    <div className="flex items-baseline justify-between gap-3 mb-1">
-                      <div className="font-serif text-base">{g.name}</div>
-                      <span className="font-mono text-xs text-muted-foreground">{pct}%</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mb-2 font-mono">
-                      {fmtMoney(g.current_amount)} / {fmtMoney(g.target_amount)}
-                      {g.deadline && ` · by ${g.deadline}`}
-                    </div>
-                    <div className="h-px bg-border relative mb-2">
-                      <div className={`absolute left-0 top-0 h-px bg-liturgical-${g.color || "green"}`} style={{ width: `${pct}%` }} />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        defaultValue={g.current_amount}
-                        data-testid={`budget-savings-input-${g.goal_id}`}
-                        onBlur={(e) => updateSg(g.goal_id, parseFloat(e.target.value) || 0)}
-                        className="w-24 bg-transparent border-b border-border focus:border-foreground outline-none py-1 text-sm font-mono"
-                      />
-                      <button onClick={() => removeSg(g.goal_id)} data-testid={`budget-savings-remove-${g.goal_id}`} className="text-xs text-muted-foreground hover:text-destructive">Remove</button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Panel>
-
-        {/* Transactions */}
         <Panel testId="budget-transactions-panel" className="lg:col-span-8" label="Ledger · this month">
           {txns.length === 0 ? (
             <div className="text-sm text-muted-foreground">No transactions yet.</div>
@@ -237,7 +231,6 @@ export default function Budget() {
           )}
         </Panel>
 
-        {/* Stewardship principles */}
         <Panel testId="budget-principles-panel" className="lg:col-span-4" label="Stewardship">
           <ul className="space-y-4">
             {PRINCIPLES.map((p) => (
@@ -256,7 +249,17 @@ export default function Budget() {
           <Field label="Name">
             <input data-testid="budget-cat-name-input" value={catDraft.name} onChange={(e) => setCatDraft({ ...catDraft, name: e.target.value })} className="w-full bg-transparent border-b border-border focus:border-foreground outline-none py-2" />
           </Field>
-          <Field label="Monthly limit (USD)">
+          <Field label="Group">
+            <select
+              data-testid="budget-cat-group-select"
+              value={catDraft.group}
+              onChange={(e) => setCatDraft({ ...catDraft, group: e.target.value })}
+              className="w-full bg-transparent border border-border py-2 px-3 text-sm"
+            >
+              {CATEGORY_GROUPS.map((g) => <option key={g.key} value={g.key}>{g.label}</option>)}
+            </select>
+          </Field>
+          <Field label="Monthly allocation (USD)">
             <input data-testid="budget-cat-limit-input" type="number" value={catDraft.monthly_limit} onChange={(e) => setCatDraft({ ...catDraft, monthly_limit: e.target.value })} className="w-full bg-transparent border-b border-border focus:border-foreground outline-none py-2 font-mono" />
           </Field>
           <Field label="Kind">
@@ -301,23 +304,13 @@ export default function Budget() {
           <ModalFooter onCancel={() => setShowTxn(false)} onSubmit={addTxn} submitLabel="Record" submitTestId="budget-txn-submit" />
         </Modal>
       )}
-
-      {showSg && (
-        <Modal title="New savings goal" onClose={() => setShowSg(false)}>
-          <Field label="Name"><input data-testid="budget-sg-name-input" value={sgDraft.name} onChange={(e) => setSgDraft({ ...sgDraft, name: e.target.value })} className="w-full bg-transparent border-b border-border focus:border-foreground outline-none py-2" /></Field>
-          <Field label="Target (USD)"><input data-testid="budget-sg-target-input" type="number" value={sgDraft.target_amount} onChange={(e) => setSgDraft({ ...sgDraft, target_amount: e.target.value })} className="w-full bg-transparent border-b border-border focus:border-foreground outline-none py-2 font-mono" /></Field>
-          <Field label="Current (USD)"><input data-testid="budget-sg-current-input" type="number" value={sgDraft.current_amount} onChange={(e) => setSgDraft({ ...sgDraft, current_amount: e.target.value })} className="w-full bg-transparent border-b border-border focus:border-foreground outline-none py-2 font-mono" /></Field>
-          <Field label="Deadline (optional)"><input data-testid="budget-sg-deadline-input" type="date" value={sgDraft.deadline} onChange={(e) => setSgDraft({ ...sgDraft, deadline: e.target.value })} className="bg-transparent border-b border-border focus:border-foreground outline-none py-2 font-mono" /></Field>
-          <ModalFooter onCancel={() => setShowSg(false)} onSubmit={addSg} submitLabel="Set goal" submitTestId="budget-sg-submit" />
-        </Modal>
-      )}
     </div>
   );
 }
 
-function BigStat({ label, value, sub, accent }) {
+function BigStat({ label, value, sub, accent, testId }) {
   return (
-    <div className="bg-background p-6">
+    <div className="bg-background p-6" data-testid={testId}>
       <div className="overline mb-2">{label}</div>
       <div className={`font-serif text-3xl tracking-tighter ${accent ? `text-${accent}` : ""}`}>{value}</div>
       {sub && <div className="font-mono text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">{sub}</div>}
@@ -327,8 +320,8 @@ function BigStat({ label, value, sub, accent }) {
 
 function Modal({ title, children, onClose }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" data-testid="budget-modal">
-      <div className="bg-background border border-border max-w-md w-full p-8 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" data-testid="budget-modal" onClick={onClose}>
+      <div className="bg-background border border-border max-w-md w-full p-8 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <h2 className="font-serif text-2xl mb-6">{title}</h2>
         <div className="space-y-5">{children}</div>
       </div>
