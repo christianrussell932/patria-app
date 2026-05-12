@@ -4,8 +4,12 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, timezone, timedelta, date
+from dotenv import load_dotenv
+from pathlib import Path
 import os
 import uuid
+
+load_dotenv(Path(__file__).parent / '.env')
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)

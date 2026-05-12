@@ -1,0 +1,36 @@
+{
+  "summary": "Patria v0.5 backend refactor + four correctness fixes fully verified. 119/119 local pytest suites PASS (including the new test_patria_v5_correctness.py with 15 tests covering council idempotency, relativedelta-based rhythm/Sacred-Heart math, and the 1962 Sundays-after-Epiphany resumption rubric). Added a new public-URL smoke suite (test_patria_v5_public_endpoints.py, 24 tests) that hits the deployed REACT_APP_BACKEND_URL: all 19 router prefixes reachable (200) after the server.py split into /app/backend/routers/, council finalize end-to-end idempotent (2 created → 0 on re-finalize already=true → only +1 when a new title is added; tasks materialize with category='council' and source_meeting_id and appear in /api/tasks), rhythm monthly observe → next_due = today + 1 calendar month via dateutil.relativedelta, sacred-heart enthroned on Feb 29 returns a valid next_renewal (Feb 28/29 clamp), and Traditional 1962 liturgical labels match brief: Jan 18 2026 → 'II Sunday after Epiphany', Oct 25 2026 → 'XXII Sunday after Pentecost', Nov 1/8/15 2026 → IV/V/VI Sunday after Epiphany (resumed) (Nov 1 surfaced via season_label because All Saints overrides name), Nov 22 2026 → 'Last Sunday after Pentecost'. Demo seed unaffected, demo session still authenticates. Total: 143/143 backend tests green.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_patria_v5_correctness.py",
+    "/app/backend/tests/test_patria_v5_public_endpoints.py",
+    "/app/test_reports/pytest/v5_results.xml",
+    "/app/test_reports/pytest/v5_public_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is now a clean ~60-line entry point. Router boundaries are clear and dependency injection via /app/backend/deps.py is well-isolated. No code-review concerns this round.",
+    "_next_due() and _next_anniversary() now correctly use dateutil.relativedelta and dateutil cleanly handles Feb 29 / end-of-month clamps. Earlier review items (3, 4, 5 from iteration_5) are resolved.",
+    "Council finalize_meeting now diffs by (assignment_id OR title) against existing meeting-scoped tasks before insert — the {ok, already, tasks_created, tasks_existing} shape is consistent and idempotent under both repeat-finalize and aid-stripping client behaviour. Earlier review item (3) resolved.",
+    "1962 'Sundays after Epiphany' rubric in liturgical.py correctly resumes displaced Sundays after XXIII (or last available) Sunday after Pentecost, immediately before the Last Sunday. The first_sunday_of_advent fix (was returning Saturdays in some years) is the prerequisite and is also covered by an assertion across 2020–2030.",
+    "Minor: no auth-required tests on the public-URL suite use the demo session — they seed a throwaway session and tear it down, which is the correct hygiene per /app/memory/test_credentials.md. No demo data was mutated."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_patria_v5_public_endpoints.py (new — 24 public-URL smoke/E2E tests for the v0.5 refactor and four correctness fixes)"
+  ],
+  "success_rate": {"backend": "100% (143/143: 119 local + 24 public-URL)", "frontend": "not tested (per request)"},
+  "test_credentials": "Demo: SESSION_TOKEN=demo_session_patria, USER_ID=demo-user-patria, HOUSEHOLD_ID=hh_demo_patria. Used only for read-only smoke (/api/, /api/auth/me, /api/dashboard, /api/liturgical/today). Mutating tests seed throwaway test-user-pub-{ts} sessions and households (cleaned up in fixture teardown).",
+  "seed_data_creation": "None persisted. Pytest fixtures create ephemeral users/households/sessions and tear them all down (users, user_sessions, households, tasks, meetings, rhythms, sacred_heart collections). Demo data untouched.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "v0.5 refactor verified clean. Backend layout: server.py (~60 lines) + /app/backend/deps.py (User/Household models, get_current_user, get_household, db, client) + /app/backend/routers/{auth,household,liturgical,rules,prayer,challenges,budget,schedule,tasks,goals,dashboard,council,sacred_heart,rhythms}.py. Council finalize response shape is now {ok, already, tasks_created, tasks_existing} — earlier shape was {tasks_created} only; any downstream tests should be updated. Rhythm cadences supported: daily/weekly/monthly/quarterly/yearly via dateutil.relativedelta; unknown cadence falls back to weekly. Sacred Heart state shape: {enthroned_at, last_renewed_at, next_renewal, is_enthroned}. Traditional 1962 liturgical: when a fixed feast (e.g. All Saints) overrides the Sunday name, the resumed-Epiphany label moves into season_label — tests must check both fields. The first_sunday_of_advent bug fix is upstream of the entire 1962 rubric, so any future Advent-related tests can rely on Advent 1 being a Sunday.",
+  "rca of the issue": "No bugs reproduced this iteration. Two initial public-URL test failures were my own payload errors (rhythm field is 'name' not 'title'; sacred-heart enthrone uses 'enthroned_at' not 'date'; observe endpoint returns {ok:true} with no body echo). Fixed in test code, not application code. After fixes, 143/143 green."
+}

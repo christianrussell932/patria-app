@@ -36,9 +36,15 @@ def compute_easter(year: int) -> date:
 
 
 def first_sunday_of_advent(year: int) -> date:
+    """The First Sunday of Advent — Sunday closest to St. Andrew (Nov 30).
+
+    Equivalently: the Sunday strictly before Christmas, minus 3 weeks.
+    weekday(): Mon=0 .. Sun=6. Days back to Sunday strictly before Christmas
+    is `weekday() + 1` (so a Sunday Christmas yields 7 days back, not 0).
+    """
     christmas = date(year, 12, 25)
-    sunday_before = christmas - timedelta(days=(christmas.weekday() + 1) % 7 + 1)
-    return sunday_before - timedelta(weeks=3)
+    sunday_before_christmas = christmas - timedelta(days=christmas.weekday() + 1)
+    return sunday_before_christmas - timedelta(weeks=3)
 
 
 ROMAN_NUMERALS = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X",
@@ -147,9 +153,53 @@ def _name_modern(d: date, season: str, season_start: date,
     return weekday
 
 
+def _first_sunday_after_epiphany(year: int) -> date:
+    """Sunday between Jan 7 and Jan 13 inclusive — the I Sunday after Epiphany (1962)."""
+    d = date(year, 1, 7)
+    while d.weekday() != 6:
+        d += timedelta(days=1)
+    return d
+
+
+def _traditional_post_pentecost_label(sun: date, pentecost: date,
+                                       advent_start: date, septuagesima: date) -> str:
+    """Return the 1962 Missal label for a Sunday in Time after Pentecost.
+
+    Rubric (1962 General Rubrics):
+      - First Sunday after Pentecost = Trinity Sunday (= pentecost + 7d).
+      - Sundays after Pentecost are counted I, II, III, ... up to the Last Sunday
+        (the Sunday immediately before Advent).
+      - If the Sundays after Epiphany did not all occur in winter (Lent began
+        early), the displaced Sundays are RESUMED after the XXIII Sunday after
+        Pentecost — placed immediately before the Last Sunday after Pentecost,
+        in their original Epiphany numbering order.
+    """
+    first_post_pent_sun = pentecost + timedelta(days=7)
+    last_sun_before_advent = advent_start - timedelta(days=7)
+    total = ((last_sun_before_advent - first_post_pent_sun).days // 7) + 1  # includes Last
+
+    first_epi_sun = _first_sunday_after_epiphany(pentecost.year)
+    available_epi = max(0, (septuagesima - first_epi_sun).days // 7)  # I..N
+    displaced_epi = max(0, 6 - available_epi)
+
+    idx = (sun - first_post_pent_sun).days // 7  # 0-based slot
+    regular_count = total - displaced_epi - 1  # regular numbered Sundays after Pentecost
+
+    if idx == total - 1:
+        return "Last Sunday after Pentecost"
+    if idx < regular_count:
+        return f"{roman(idx + 1)} Sunday after Pentecost"
+    if idx < total - 1:
+        epi_num = available_epi + (idx - regular_count) + 1
+        return f"{roman(epi_num)} Sunday after Epiphany (resumed)"
+    # Fallback — defensive
+    return f"{roman(idx + 1)} Sunday after Pentecost"
+
+
 def _name_traditional(d: date, season: str, season_start: date,
                       baptism_of_lord: date, ash_wed: date,
-                      pentecost: date, christ_the_king: date) -> str:
+                      pentecost: date, christ_the_king: date,
+                      advent_start: date, septuagesima: date) -> str:
     """Traditional pre-1962 naming: 'Sundays after Pentecost/Epiphany', Septuagesima."""
     weekday = WEEKDAY_NAMES[d.weekday()]
 
@@ -184,24 +234,38 @@ def _name_traditional(d: date, season: str, season_start: date,
         return f"{weekday} after {roman(week)} Sunday of Easter"
     if season == "Ordinary Time":
         if d < ash_wed:
-            # "Time after Epiphany" — Sundays after Epiphany
-            sundays = ((d - baptism_of_lord).days // 7) + 1
+            # "Time after Epiphany" — Sundays after Epiphany.
+            # First Sunday after Epiphany = the Sunday between Jan 7-13 (1962).
+            first_epi_sun = _first_sunday_after_epiphany(d.year)
+            if d < first_epi_sun:
+                # Days from Jan 7 (after Epiphany Jan 6) up to the first Sunday after Epiphany
+                # are weekdays "after Epiphany" — not yet within the I Sunday's week.
+                if d.weekday() == 6:
+                    # Defensive — shouldn't reach here for a Sunday
+                    return "Sunday after Epiphany"
+                return f"{weekday} after Epiphany"
+            sundays = ((d - first_epi_sun).days // 7) + 1
             sundays = max(1, sundays)
             if d.weekday() == 6:
                 return f"{roman(sundays)} Sunday after Epiphany"
             return f"{weekday} after {roman(sundays)} Sunday after Epiphany"
-        # Time after Pentecost
-        diff = (d - pentecost).days
-        week = (diff // 7) + 1
+        # Time after Pentecost (incl. resumed Epiphany Sundays + Last Sunday)
         if d.weekday() == 6:
-            return f"{roman(week)} Sunday after Pentecost"
-        return f"{weekday} after {roman(week)} Sunday after Pentecost"
+            sun = d
+        else:
+            # Previous Sunday (weekday() Mon=0 .. Sun=6); for Mon, that's d - 1d.
+            sun = d - timedelta(days=d.weekday() + 1)
+        label = _traditional_post_pentecost_label(sun, pentecost, advent_start, septuagesima)
+        if d.weekday() == 6:
+            return label
+        return f"{weekday} after {label}"
     return weekday
 
 
 def _season_label(d: date, season: str, season_start: date,
                   baptism_of_lord: date, ash_wed: date,
-                  pentecost: date, christ_the_king: date, variant: str) -> str:
+                  pentecost: date, christ_the_king: date, variant: str,
+                  advent_start: date, septuagesima: date) -> str:
     """Always-on secondary line, e.g. 'Easter Season · VI Week of Easter'."""
     if season == "Advent":
         week = ((d - season_start).days // 7) + 1
@@ -223,16 +287,23 @@ def _season_label(d: date, season: str, season_start: date,
         week = ((d - season_start).days // 7) + 1
         return f"Easter Season · {roman(week)} Week of Easter"
     if season == "Ordinary Time":
+        if variant == "traditional":
+            if d < ash_wed:
+                first_epi_sun = _first_sunday_after_epiphany(d.year)
+                if d < first_epi_sun:
+                    return "Time after Epiphany"
+                n = ((d - first_epi_sun).days // 7) + 1
+                return f"Time after Epiphany · {roman(max(1, n))} Sunday after Epiphany"
+            # Time after Pentecost (with 1962 resumed-Epiphany handling)
+            sun = d if d.weekday() == 6 else d - timedelta(days=d.weekday() + 1)
+            label = _traditional_post_pentecost_label(sun, pentecost, advent_start, septuagesima)
+            return f"Time after Pentecost · {label}"
         if d < ash_wed:
             week = ((d - baptism_of_lord).days // 7) + 1
         else:
             weeks_to_ck = ((christ_the_king - d).days // 7)
             week = 34 - weeks_to_ck
         week = max(1, min(34, week))
-        if variant == "traditional":
-            if d < ash_wed:
-                return f"Time after Epiphany · {roman(week)} Sunday after Epiphany"
-            return f"Time after Pentecost · {roman(week)} Sunday after Pentecost"
         return f"Ordinary Time · {roman(week)} Week in Ordinary Time"
     return season
 
@@ -283,7 +354,7 @@ def liturgical_for(d: date, variant: str = "roman") -> dict:
 
     # Default ferial name
     if variant == "traditional":
-        name = _name_traditional(d, season_name, season_start, bol, ash_wednesday, pentecost, christ_the_king)
+        name = _name_traditional(d, season_name, season_start, bol, ash_wednesday, pentecost, christ_the_king, advent_start, septuagesima)
     else:
         name = _name_modern(d, season_name, season_start, bol, ash_wednesday, pentecost, christ_the_king)
     rank = "feria" if not is_sunday else "sunday"
@@ -359,7 +430,7 @@ def liturgical_for(d: date, variant: str = "roman") -> dict:
         "color": color,
         "rank": rank,
         "season": season_name,
-        "season_label": _season_label(d, season_name, season_start, bol, ash_wednesday, pentecost, christ_the_king, variant),
+        "season_label": _season_label(d, season_name, season_start, bol, ash_wednesday, pentecost, christ_the_king, variant, advent_start, septuagesima),
         "fasting": fasting,
         "abstinence": abstinence,
         "is_sunday": is_sunday,

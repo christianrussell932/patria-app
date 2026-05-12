@@ -194,9 +194,10 @@ class TestSacredHeart:
         assert r.status_code == 200
         d = crud_client.get(f"{API}/sacred-heart/state").json()
         assert d["renewal_at"] == date.today().isoformat()
-        # next_renewal recomputed from renewal_at
-        nd = date.today()
-        assert d["next_renewal"] == date(nd.year + 1, nd.month, nd.day).isoformat()
+        # next_renewal is the next anniversary >= today (today IS the renewal day,
+        # so the next anniversary is today). Uses dateutil.relativedelta to
+        # handle Feb 29 / month-end edge cases correctly.
+        assert d["next_renewal"] == date.today().isoformat()
 
 
 # ============================================================
@@ -226,8 +227,10 @@ class TestRhythms:
         rhys = crud_client.get(f"{API}/rhythms").json()["rhythms"]
         r2 = next(x for x in rhys if x["rhythm_id"] == state["rhy_id"])
         assert r2["last_observed"] == date.today().isoformat()
-        # monthly = +30 days
-        expected = (date.today() + timedelta(days=30)).isoformat()
+        # monthly cadence uses dateutil.relativedelta — adds 1 calendar month
+        # (with end-of-month clamping when needed), not a fixed 30 days.
+        from dateutil.relativedelta import relativedelta
+        expected = (date.today() + relativedelta(months=1)).isoformat()
         assert r2["next_due"] == expected
 
     def test_patch_rhythm(self, crud_client):
