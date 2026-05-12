@@ -41,6 +41,12 @@ A structured operating system for intentional Catholic family life. Repositioned
 ### v0.3 — Refinement
 - Family Council module, Sacred Heart tab (optional), liturgical engine v2 (proper ferial naming, Traditional Roman overlay), Household Rhythms, Crest motif. 93/93 backend + 100% frontend
 
+### v0.6 — Optional memorials surfaced as secondary identity (Feb 12, 2026)
+- **API contract:** every `/api/liturgical/today` and `/api/liturgical/calendar` response now includes `optional_memorials: [{name, color}]`. Multiple saints per day supported (e.g., May 12 → Sts. Nereus & Achilleus + St. Pancras).
+- **Display hierarchy:** the ferial / Sunday name stays primary; saints surface in their own dashboard slot ("Also commemorated: …") in their liturgical colour. `season_label` stays pure structural metadata (season + week). Higher-rank celebrations (feast / solemnity / obligatory memorial) suppress optionals so the day's identity stays focused.
+- **Content fill:** added ~130 optional memorials from the modern General Roman Calendar across the year (January–December), with special coverage for Easter season since that was the gap the user noticed. Traditional 1962 has its own narrower dict for trad-specific commemorations.
+- **Tests:** 150/150 green (7 new in `test_patria_v6_optional_memorials.py` cover May 12 Nereus+Pancras, multi-saint days, suppression by higher rank, field-always-present invariant, and traditional variant).
+
 ### v0.5 — Technical correctness & modularization (Feb 12, 2026)
 - **Backend refactor:** `server.py` slimmed from ~1,650 LOC to ~60 LOC. All domains extracted into `/app/backend/routers/` (auth, household, liturgical, rules, prayer, challenges, budget, schedule, tasks, goals, dashboard, council, sacred_heart, rhythms) with shared `deps.py` for User/Household models + `get_current_user` / `get_household`.
 - **Council `finalize_meeting` is idempotent:** response now `{ok, already, tasks_created, tasks_existing}`. Re-finalize never double-creates tasks. Diffs by `assignment_id` OR title — robust against clients that drop `assignment_id` round-trip. Backfills `assignment_id` + `task_id` onto assignments after finalize so subsequent PATCHes stay coherent.

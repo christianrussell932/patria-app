@@ -34,13 +34,27 @@ export default function Dashboard() {
                 {lit.name}
               </h1>
               <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
-                <span className={liturgicalText(lit.color)}>● {lit.season_label || lit.season}</span>
+                <span className={liturgicalText(lit.color)} data-testid="liturgical-season-label">● {lit.season_label || lit.season}</span>
                 {lit.rank !== "feria" && lit.rank !== "sunday" && (
                   <span className="font-mono text-xs uppercase tracking-wider">{lit.rank}</span>
                 )}
                 {lit.fasting && <span className="text-liturgical-violet">FAST</span>}
                 {lit.abstinence && <span className="text-liturgical-red">ABSTINENCE</span>}
               </div>
+              {lit.optional_memorials && lit.optional_memorials.length > 0 && (
+                <div
+                  className="mt-2 text-sm italic text-muted-foreground/85"
+                  data-testid="liturgical-optional-memorials"
+                >
+                  Also commemorated:{" "}
+                  {lit.optional_memorials.map((m, i) => (
+                    <span key={i}>
+                      <span className={liturgicalText(m.color)}>{m.name}</span>
+                      {i < lit.optional_memorials.length - 1 ? " · " : ""}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

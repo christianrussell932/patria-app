@@ -106,6 +106,271 @@ FIXED_FEASTS = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Optional memorials (modern Roman calendar)
+#
+# These celebrate saints whose observance is OPTIONAL — they should never
+# eclipse the ferial day of the season, but they should appear as a SECONDARY
+# liturgical identity. Multiple saints can fall on the same day (e.g., May 12:
+# Sts. Nereus & Achilleus AND St. Pancras), so each entry is a list.
+#
+# Entries are deliberately omitted on days that already host an obligatory
+# memorial / feast / solemnity in FIXED_FEASTS — the higher-rank celebration
+# subsumes them. Days with an obligatory memorial that the user has marked as
+# `memorial` in FIXED_FEASTS may still gain an additional optional memorial
+# here (the obligatory becomes primary; this becomes tertiary commemoration).
+# ---------------------------------------------------------------------------
+OPTIONAL_MEMORIALS_MODERN: dict[tuple[int, int], list[dict]] = {
+    # January
+    (1, 2):  [{"name": "Sts. Basil the Great and Gregory Nazianzen, Bishops & Doctors", "color": SEASON_WHITE}],
+    (1, 3):  [{"name": "The Most Holy Name of Jesus", "color": SEASON_WHITE}],
+    (1, 4):  [{"name": "St. Elizabeth Ann Seton", "color": SEASON_WHITE}],
+    (1, 5):  [{"name": "St. John Neumann, Bishop", "color": SEASON_WHITE}],
+    (1, 7):  [{"name": "St. Raymond of Penyafort, Priest", "color": SEASON_WHITE}],
+    (1, 13): [{"name": "St. Hilary, Bishop & Doctor", "color": SEASON_WHITE}],
+    (1, 17): [{"name": "St. Anthony, Abbot", "color": SEASON_WHITE}],
+    (1, 20): [
+        {"name": "St. Fabian, Pope & Martyr", "color": SEASON_RED},
+        {"name": "St. Sebastian, Martyr", "color": SEASON_RED},
+    ],
+    (1, 21): [{"name": "St. Agnes, Virgin & Martyr", "color": SEASON_RED}],
+    (1, 22): [{"name": "St. Vincent, Deacon & Martyr", "color": SEASON_RED}],
+    (1, 24): [{"name": "St. Francis de Sales, Bishop & Doctor", "color": SEASON_WHITE}],
+    (1, 26): [{"name": "Sts. Timothy and Titus, Bishops", "color": SEASON_WHITE}],
+    (1, 27): [{"name": "St. Angela Merici, Virgin", "color": SEASON_WHITE}],
+    (1, 31): [{"name": "St. John Bosco, Priest", "color": SEASON_WHITE}],
+    # February
+    (2, 3):  [
+        {"name": "St. Blaise, Bishop & Martyr", "color": SEASON_RED},
+        {"name": "St. Ansgar, Bishop", "color": SEASON_WHITE},
+    ],
+    (2, 5):  [{"name": "St. Agatha, Virgin & Martyr", "color": SEASON_RED}],
+    (2, 6):  [{"name": "Sts. Paul Miki and Companions, Martyrs", "color": SEASON_RED}],
+    (2, 8):  [
+        {"name": "St. Jerome Emiliani", "color": SEASON_WHITE},
+        {"name": "St. Josephine Bakhita, Virgin", "color": SEASON_WHITE},
+    ],
+    (2, 10): [{"name": "St. Scholastica, Virgin", "color": SEASON_WHITE}],
+    (2, 11): [{"name": "Our Lady of Lourdes", "color": SEASON_WHITE}],
+    (2, 14): [{"name": "Sts. Cyril, Monk, and Methodius, Bishop", "color": SEASON_WHITE}],
+    (2, 17): [{"name": "Seven Holy Founders of the Servite Order", "color": SEASON_WHITE}],
+    (2, 21): [{"name": "St. Peter Damian, Bishop & Doctor", "color": SEASON_WHITE}],
+    (2, 23): [{"name": "St. Polycarp, Bishop & Martyr", "color": SEASON_RED}],
+    # March
+    (3, 4):  [{"name": "St. Casimir", "color": SEASON_WHITE}],
+    (3, 7):  [{"name": "Sts. Perpetua and Felicity, Martyrs", "color": SEASON_RED}],
+    (3, 8):  [{"name": "St. John of God, Religious", "color": SEASON_WHITE}],
+    (3, 9):  [{"name": "St. Frances of Rome, Religious", "color": SEASON_WHITE}],
+    (3, 18): [{"name": "St. Cyril of Jerusalem, Bishop & Doctor", "color": SEASON_WHITE}],
+    (3, 23): [{"name": "St. Turibius of Mogrovejo, Bishop", "color": SEASON_WHITE}],
+    # April
+    (4, 2):  [{"name": "St. Francis of Paola, Hermit", "color": SEASON_WHITE}],
+    (4, 4):  [{"name": "St. Isidore of Seville, Bishop & Doctor", "color": SEASON_WHITE}],
+    (4, 5):  [{"name": "St. Vincent Ferrer, Priest", "color": SEASON_WHITE}],
+    (4, 7):  [{"name": "St. John Baptist de la Salle, Priest", "color": SEASON_WHITE}],
+    (4, 11): [{"name": "St. Stanislaus, Bishop & Martyr", "color": SEASON_RED}],
+    (4, 13): [{"name": "St. Martin I, Pope & Martyr", "color": SEASON_RED}],
+    (4, 21): [{"name": "St. Anselm, Bishop & Doctor", "color": SEASON_WHITE}],
+    (4, 23): [
+        {"name": "St. George, Martyr", "color": SEASON_RED},
+        {"name": "St. Adalbert, Bishop & Martyr", "color": SEASON_RED},
+    ],
+    (4, 24): [{"name": "St. Fidelis of Sigmaringen, Priest & Martyr", "color": SEASON_RED}],
+    (4, 28): [
+        {"name": "St. Peter Chanel, Priest & Martyr", "color": SEASON_RED},
+        {"name": "St. Louis Marie de Montfort, Priest", "color": SEASON_WHITE},
+    ],
+    (4, 29): [{"name": "St. Catherine of Siena, Virgin & Doctor", "color": SEASON_WHITE}],
+    (4, 30): [{"name": "St. Pius V, Pope", "color": SEASON_WHITE}],
+    # May
+    (5, 2):  [{"name": "St. Athanasius, Bishop & Doctor", "color": SEASON_WHITE}],
+    (5, 3):  [{"name": "Sts. Philip and James, Apostles", "color": SEASON_RED}],
+    (5, 10): [{"name": "St. Damien de Veuster of Molokai, Priest", "color": SEASON_WHITE}],
+    (5, 12): [
+        {"name": "Sts. Nereus and Achilleus, Martyrs", "color": SEASON_RED},
+        {"name": "St. Pancras, Martyr", "color": SEASON_RED},
+    ],
+    (5, 13): [{"name": "Our Lady of Fatima", "color": SEASON_WHITE}],
+    (5, 15): [{"name": "St. Isidore the Farmer", "color": SEASON_WHITE}],
+    (5, 18): [{"name": "St. John I, Pope & Martyr", "color": SEASON_RED}],
+    (5, 20): [{"name": "St. Bernardine of Siena, Priest", "color": SEASON_WHITE}],
+    (5, 21): [{"name": "St. Christopher Magallanes and Companions, Martyrs", "color": SEASON_RED}],
+    (5, 22): [{"name": "St. Rita of Cascia, Religious", "color": SEASON_WHITE}],
+    (5, 25): [
+        {"name": "St. Bede the Venerable, Priest & Doctor", "color": SEASON_WHITE},
+        {"name": "St. Gregory VII, Pope", "color": SEASON_WHITE},
+        {"name": "St. Mary Magdalene de'Pazzi, Virgin", "color": SEASON_WHITE},
+    ],
+    (5, 26): [{"name": "St. Philip Neri, Priest", "color": SEASON_WHITE}],
+    (5, 27): [{"name": "St. Augustine of Canterbury, Bishop", "color": SEASON_WHITE}],
+    # June
+    (6, 1):  [{"name": "St. Justin, Martyr", "color": SEASON_RED}],
+    (6, 2):  [{"name": "Sts. Marcellinus and Peter, Martyrs", "color": SEASON_RED}],
+    (6, 3):  [{"name": "Sts. Charles Lwanga and Companions, Martyrs", "color": SEASON_RED}],
+    (6, 5):  [{"name": "St. Boniface, Bishop & Martyr", "color": SEASON_RED}],
+    (6, 6):  [{"name": "St. Norbert, Bishop", "color": SEASON_WHITE}],
+    (6, 9):  [{"name": "St. Ephrem, Deacon & Doctor", "color": SEASON_WHITE}],
+    (6, 11): [{"name": "St. Barnabas, Apostle", "color": SEASON_RED}],
+    (6, 19): [{"name": "St. Romuald, Abbot", "color": SEASON_WHITE}],
+    (6, 21): [{"name": "St. Aloysius Gonzaga, Religious", "color": SEASON_WHITE}],
+    (6, 22): [
+        {"name": "St. Paulinus of Nola, Bishop", "color": SEASON_WHITE},
+        {"name": "Sts. John Fisher, Bishop & Martyr, and Thomas More, Martyr", "color": SEASON_RED},
+    ],
+    (6, 27): [{"name": "St. Cyril of Alexandria, Bishop & Doctor", "color": SEASON_WHITE}],
+    (6, 28): [{"name": "St. Irenaeus, Bishop, Martyr & Doctor", "color": SEASON_RED}],
+    # July
+    (7, 1):  [{"name": "St. Junipero Serra, Priest", "color": SEASON_WHITE}],
+    (7, 3):  [{"name": "St. Thomas, Apostle", "color": SEASON_RED}],
+    (7, 4):  [{"name": "St. Elizabeth of Portugal", "color": SEASON_WHITE}],
+    (7, 5):  [{"name": "St. Anthony Mary Zaccaria, Priest", "color": SEASON_WHITE}],
+    (7, 6):  [{"name": "St. Maria Goretti, Virgin & Martyr", "color": SEASON_RED}],
+    (7, 9):  [{"name": "Sts. Augustine Zhao Rong and Companions, Martyrs", "color": SEASON_RED}],
+    (7, 13): [{"name": "St. Henry", "color": SEASON_WHITE}],
+    (7, 14): [
+        {"name": "St. Camillus de Lellis, Priest", "color": SEASON_WHITE},
+        {"name": "St. Kateri Tekakwitha, Virgin", "color": SEASON_WHITE},
+    ],
+    (7, 15): [{"name": "St. Bonaventure, Bishop & Doctor", "color": SEASON_WHITE}],
+    (7, 16): [{"name": "Our Lady of Mount Carmel", "color": SEASON_WHITE}],
+    (7, 20): [{"name": "St. Apollinaris, Bishop & Martyr", "color": SEASON_RED}],
+    (7, 21): [{"name": "St. Lawrence of Brindisi, Priest & Doctor", "color": SEASON_WHITE}],
+    (7, 23): [{"name": "St. Bridget of Sweden, Religious", "color": SEASON_WHITE}],
+    (7, 24): [{"name": "St. Sharbel Makhluf, Priest", "color": SEASON_WHITE}],
+    (7, 25): [{"name": "St. James, Apostle", "color": SEASON_RED}],
+    (7, 29): [{"name": "Sts. Martha, Mary, and Lazarus", "color": SEASON_WHITE}],
+    (7, 30): [{"name": "St. Peter Chrysologus, Bishop & Doctor", "color": SEASON_WHITE}],
+    # August
+    (8, 1):  [{"name": "St. Alphonsus Liguori, Bishop & Doctor", "color": SEASON_WHITE}],
+    (8, 2):  [
+        {"name": "St. Eusebius of Vercelli, Bishop", "color": SEASON_WHITE},
+        {"name": "St. Peter Julian Eymard, Priest", "color": SEASON_WHITE},
+    ],
+    (8, 5):  [{"name": "Dedication of the Basilica of St. Mary Major", "color": SEASON_WHITE}],
+    (8, 7):  [
+        {"name": "St. Sixtus II, Pope, and Companions, Martyrs", "color": SEASON_RED},
+        {"name": "St. Cajetan, Priest", "color": SEASON_WHITE},
+    ],
+    (8, 9):  [{"name": "St. Teresa Benedicta of the Cross, Virgin & Martyr", "color": SEASON_RED}],
+    (8, 10): [{"name": "St. Lawrence, Deacon & Martyr", "color": SEASON_RED}],
+    (8, 11): [{"name": "St. Clare, Virgin", "color": SEASON_WHITE}],
+    (8, 12): [{"name": "St. Jane Frances de Chantal, Religious", "color": SEASON_WHITE}],
+    (8, 13): [{"name": "Sts. Pontian, Pope, and Hippolytus, Priest, Martyrs", "color": SEASON_RED}],
+    (8, 14): [{"name": "St. Maximilian Mary Kolbe, Priest & Martyr", "color": SEASON_RED}],
+    (8, 16): [{"name": "St. Stephen of Hungary", "color": SEASON_WHITE}],
+    (8, 19): [{"name": "St. John Eudes, Priest", "color": SEASON_WHITE}],
+    (8, 20): [{"name": "St. Bernard, Abbot & Doctor", "color": SEASON_WHITE}],
+    (8, 21): [{"name": "St. Pius X, Pope", "color": SEASON_WHITE}],
+    (8, 22): [{"name": "Queenship of the Blessed Virgin Mary", "color": SEASON_WHITE}],
+    (8, 23): [{"name": "St. Rose of Lima, Virgin", "color": SEASON_WHITE}],
+    (8, 24): [{"name": "St. Bartholomew, Apostle", "color": SEASON_RED}],
+    (8, 25): [
+        {"name": "St. Louis", "color": SEASON_WHITE},
+        {"name": "St. Joseph Calasanz, Priest", "color": SEASON_WHITE},
+    ],
+    (8, 27): [{"name": "St. Monica", "color": SEASON_WHITE}],
+    (8, 29): [{"name": "Passion of St. John the Baptist", "color": SEASON_RED}],
+    # September
+    (9, 3):  [{"name": "St. Gregory the Great, Pope & Doctor", "color": SEASON_WHITE}],
+    (9, 9):  [{"name": "St. Peter Claver, Priest", "color": SEASON_WHITE}],
+    (9, 12): [{"name": "The Most Holy Name of Mary", "color": SEASON_WHITE}],
+    (9, 13): [{"name": "St. John Chrysostom, Bishop & Doctor", "color": SEASON_WHITE}],
+    (9, 15): [{"name": "Our Lady of Sorrows", "color": SEASON_WHITE}],
+    (9, 16): [{"name": "Sts. Cornelius, Pope, and Cyprian, Bishop, Martyrs", "color": SEASON_RED}],
+    (9, 17): [
+        {"name": "St. Robert Bellarmine, Bishop & Doctor", "color": SEASON_WHITE},
+        {"name": "St. Hildegard of Bingen, Virgin & Doctor", "color": SEASON_WHITE},
+    ],
+    (9, 19): [{"name": "St. Januarius, Bishop & Martyr", "color": SEASON_RED}],
+    (9, 20): [{"name": "Sts. Andrew Kim Tae-gon, Priest, Paul Chong Ha-sang, and Companions, Martyrs", "color": SEASON_RED}],
+    (9, 21): [{"name": "St. Matthew, Apostle & Evangelist", "color": SEASON_RED}],
+    (9, 23): [{"name": "St. Pius of Pietrelcina (Padre Pio), Priest", "color": SEASON_WHITE}],
+    (9, 26): [{"name": "Sts. Cosmas and Damian, Martyrs", "color": SEASON_RED}],
+    (9, 27): [{"name": "St. Vincent de Paul, Priest", "color": SEASON_WHITE}],
+    (9, 28): [
+        {"name": "St. Wenceslaus, Martyr", "color": SEASON_RED},
+        {"name": "Sts. Lawrence Ruiz and Companions, Martyrs", "color": SEASON_RED},
+    ],
+    (9, 30): [{"name": "St. Jerome, Priest & Doctor", "color": SEASON_WHITE}],
+    # October
+    (10, 2): [{"name": "The Holy Guardian Angels", "color": SEASON_WHITE}],
+    (10, 6): [
+        {"name": "St. Bruno, Priest", "color": SEASON_WHITE},
+        {"name": "Blessed Marie-Rose Durocher, Virgin", "color": SEASON_WHITE},
+    ],
+    (10, 9): [
+        {"name": "St. Denis, Bishop, and Companions, Martyrs", "color": SEASON_RED},
+        {"name": "St. John Leonardi, Priest", "color": SEASON_WHITE},
+    ],
+    (10, 14): [{"name": "St. Callistus I, Pope & Martyr", "color": SEASON_RED}],
+    (10, 16): [
+        {"name": "St. Hedwig, Religious", "color": SEASON_WHITE},
+        {"name": "St. Margaret Mary Alacoque, Virgin", "color": SEASON_WHITE},
+    ],
+    (10, 17): [{"name": "St. Ignatius of Antioch, Bishop & Martyr", "color": SEASON_RED}],
+    (10, 18): [{"name": "St. Luke, Evangelist", "color": SEASON_RED}],
+    (10, 19): [{"name": "Sts. John de Brebeuf and Isaac Jogues, Priests, and Companions, Martyrs", "color": SEASON_RED}],
+    (10, 20): [{"name": "St. Paul of the Cross, Priest", "color": SEASON_WHITE}],
+    (10, 23): [{"name": "St. John of Capistrano, Priest", "color": SEASON_WHITE}],
+    (10, 24): [{"name": "St. Anthony Mary Claret, Bishop", "color": SEASON_WHITE}],
+    (10, 28): [{"name": "Sts. Simon and Jude, Apostles", "color": SEASON_RED}],
+    # November
+    (11, 3): [{"name": "St. Martin de Porres, Religious", "color": SEASON_WHITE}],
+    (11, 4): [{"name": "St. Charles Borromeo, Bishop", "color": SEASON_WHITE}],
+    (11, 9): [{"name": "Dedication of the Lateran Basilica", "color": SEASON_WHITE}],
+    (11, 10): [{"name": "St. Leo the Great, Pope & Doctor", "color": SEASON_WHITE}],
+    (11, 11): [{"name": "St. Martin of Tours, Bishop", "color": SEASON_WHITE}],
+    (11, 12): [{"name": "St. Josaphat, Bishop & Martyr", "color": SEASON_RED}],
+    (11, 13): [{"name": "St. Frances Xavier Cabrini, Virgin", "color": SEASON_WHITE}],
+    (11, 15): [{"name": "St. Albert the Great, Bishop & Doctor", "color": SEASON_WHITE}],
+    (11, 16): [
+        {"name": "St. Margaret of Scotland", "color": SEASON_WHITE},
+        {"name": "St. Gertrude the Great, Virgin", "color": SEASON_WHITE},
+    ],
+    (11, 17): [{"name": "St. Elizabeth of Hungary, Religious", "color": SEASON_WHITE}],
+    (11, 18): [
+        {"name": "Dedication of the Basilicas of Sts. Peter and Paul, Apostles", "color": SEASON_WHITE},
+        {"name": "St. Rose Philippine Duchesne, Virgin", "color": SEASON_WHITE},
+    ],
+    (11, 21): [{"name": "The Presentation of the Blessed Virgin Mary", "color": SEASON_WHITE}],
+    (11, 23): [
+        {"name": "St. Clement I, Pope & Martyr", "color": SEASON_RED},
+        {"name": "St. Columban, Abbot", "color": SEASON_WHITE},
+        {"name": "Blessed Miguel Agustin Pro, Priest & Martyr", "color": SEASON_RED},
+    ],
+    (11, 24): [{"name": "Sts. Andrew Dung-Lac, Priest, and Companions, Martyrs", "color": SEASON_RED}],
+    (11, 25): [{"name": "St. Catherine of Alexandria, Virgin & Martyr", "color": SEASON_RED}],
+    (11, 30): [{"name": "St. Andrew, Apostle", "color": SEASON_RED}],
+    # December
+    (12, 3): [{"name": "St. Francis Xavier, Priest", "color": SEASON_WHITE}],
+    (12, 4): [{"name": "St. John Damascene, Priest & Doctor", "color": SEASON_WHITE}],
+    (12, 7): [{"name": "St. Ambrose, Bishop & Doctor", "color": SEASON_WHITE}],
+    (12, 9): [{"name": "St. Juan Diego Cuauhtlatoatzin", "color": SEASON_WHITE}],
+    (12, 11): [{"name": "St. Damasus I, Pope", "color": SEASON_WHITE}],
+    (12, 13): [{"name": "St. Lucy, Virgin & Martyr", "color": SEASON_RED}],
+    (12, 21): [{"name": "St. Peter Canisius, Priest & Doctor", "color": SEASON_WHITE}],
+    (12, 23): [{"name": "St. John of Kanty, Priest", "color": SEASON_WHITE}],
+    (12, 29): [{"name": "St. Thomas Becket, Bishop & Martyr", "color": SEASON_RED}],
+    (12, 31): [{"name": "St. Sylvester I, Pope", "color": SEASON_WHITE}],
+}
+
+
+# Optional commemorations specific to the Traditional 1962 calendar that the
+# modern dict above does not already cover. (Kept compact — the heavy lifting
+# for the traditional sanctoral is still in FIXED_FEASTS.)
+OPTIONAL_MEMORIALS_TRADITIONAL: dict[tuple[int, int], list[dict]] = {
+    (5, 12): [
+        {"name": "Sts. Nereus, Achilleus, Domitilla and Pancras, Martyrs", "color": SEASON_RED},
+    ],
+}
+
+
+def _optional_memorials_for(d: date, variant: str) -> list[dict]:
+    """Return the list of optional saint commemorations for date d under variant."""
+    table = OPTIONAL_MEMORIALS_TRADITIONAL if variant == "traditional" else OPTIONAL_MEMORIALS_MODERN
+    return table.get((d.month, d.day), [])
+
+
 def _name_modern(d: date, season: str, season_start: date,
                  baptism_of_lord: date, ash_wed: date,
                  pentecost: date, christ_the_king: date) -> str:
@@ -424,13 +689,29 @@ def liturgical_for(d: date, variant: str = "roman") -> dict:
     if rank == "solemnity" and color != SEASON_VIOLET and season_name != "Lent":
         abstinence = False
 
+    # Optional memorials — appear as a SECONDARY liturgical identity of the day.
+    # They never displace the ferial / sunday primary name; they are exposed as a
+    # structured list (`optional_memorials`) so the dashboard can render them in
+    # their own dedicated slot. If the day already hosts a feast/solemnity/
+    # memorial in FIXED_FEASTS (rank already promoted out of feria/sunday),
+    # suppress them — the higher-rank celebration subsumes optional commemorations.
+    optional_memorials: list[dict] = []
+    if rank in ("feria", "sunday"):
+        optional_memorials = _optional_memorials_for(d, variant)
+
+    season_label = _season_label(
+        d, season_name, season_start, bol, ash_wednesday, pentecost,
+        christ_the_king, variant, advent_start, septuagesima,
+    )
+
     return {
         "date": d.isoformat(),
         "name": name,
         "color": color,
         "rank": rank,
         "season": season_name,
-        "season_label": _season_label(d, season_name, season_start, bol, ash_wednesday, pentecost, christ_the_king, variant, advent_start, septuagesima),
+        "season_label": season_label,
+        "optional_memorials": optional_memorials,
         "fasting": fasting,
         "abstinence": abstinence,
         "is_sunday": is_sunday,
