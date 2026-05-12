@@ -68,6 +68,41 @@ def test_optional_memorials_traditional_variant():
         assert any("Nereus" in n for n in names)
 
 
+# ---- User-reported regression dates (calendar view fix) ---------------------
+# These dates were the user's verification pass. Each must:
+#   - return rank == "feria"  (i.e., the ferial day still holds)
+#   - return a non-empty optional_memorials list with the expected saint(s)
+#   - keep season_label clean (pure structural metadata)
+
+def test_2026_05_12_nereus_achilleus_pancras():
+    out = liturgical_for(date(2026, 5, 12), variant="roman")
+    assert out["rank"] == "feria"
+    names = [m["name"] for m in out["optional_memorials"]]
+    assert any("Nereus and Achilleus" in n for n in names)
+    assert any("Pancras" in n for n in names)
+
+
+def test_2026_05_22_rita_of_cascia():
+    out = liturgical_for(date(2026, 5, 22), variant="roman")
+    assert out["rank"] == "feria"
+    names = [m["name"] for m in out["optional_memorials"]]
+    assert any("Rita of Cascia" in n for n in names)
+
+
+def test_2026_09_09_peter_claver():
+    out = liturgical_for(date(2026, 9, 9), variant="roman")
+    assert out["rank"] == "feria"
+    names = [m["name"] for m in out["optional_memorials"]]
+    assert any("Peter Claver" in n for n in names)
+
+
+def test_2026_12_29_thomas_becket():
+    out = liturgical_for(date(2026, 12, 29), variant="roman")
+    assert out["rank"] == "feria"
+    names = [m["name"] for m in out["optional_memorials"]]
+    assert any("Thomas Becket" in n for n in names)
+
+
 def test_season_label_unchanged_by_optionals():
     """Sanity: season_label is now pure structural metadata; saints live in
     optional_memorials. (This preserves the v0.4 contract for downstream
