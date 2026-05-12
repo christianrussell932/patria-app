@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
 import Panel from "@/components/Panel";
 import { initials, memberTileClass, formatCivilDate } from "@/lib/liturgical";
@@ -6,92 +7,211 @@ import { initials, memberTileClass, formatCivilDate } from "@/lib/liturgical";
 const EVENT_TYPES = ["family", "liturgical", "date_night", "school", "medical", "other"];
 const TASK_CATEGORIES = ["general", "chore", "errand", "maintenance"];
 
+// Map common axios/server failures into a single readable message for toasts.
+function explainError(err, fallback = "Something went wrong.") {
+  // Validation surfaced from FastAPI / our HTTPException
+  const data = err?.response?.data;
+  if (data?.detail) {
+    if (typeof data.detail === "string") return data.detail;
+    if (Array.isArray(data.detail)) {
+      const m = data.detail[0];
+      const field = Array.isArray(m?.loc) ? m.loc[m.loc.length - 1] : "field";
+      return `${field}: ${m?.msg || "invalid value"}`;
+    }
+  }
+  if (err?.response?.status === 401) return "Session expired. Please sign in again.";
+  if (err?.response?.status === 403) return "You don't have access to this household.";
+  if (err?.message === "Network Error") return "Network error — check your connection.";
+  return fallback;
+}
+
+const EMPTY_EVENT = { title: "", event_date: "", event_time: "", type: "family", notes: "", member_ids: [] };
+const EMPTY_TASK  = { title: "", due_date: "", assigned_member_id: "", category: "general" };
+const EMPTY_RHYTHM = { name: "", cadence: "weekly", last_observed: "", notes: "" };
+
 export default function Schedule() {
   const [events, setEvents] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [members, setMembers] = useState([]);
   const [rhythms, setRhythms] = useState([]);
+  const [windowEnd, setWindowEnd] = useState("");
+  const [windowStart, setWindowStart] = useState("");
+
   const [showEvent, setShowEvent] = useState(false);
-  const [eventDraft, setEventDraft] = useState({ title: "", event_date: "", event_time: "", type: "family", notes: "", member_ids: [] });
+  const [eventDraft, setEventDraft] = useState(EMPTY_EVENT);
+  const [eventErrors, setEventErrors] = useState({});
+  const [submittingEvent, setSubmittingEvent] = useState(false);
+
   const [showTask, setShowTask] = useState(false);
-  const [taskDraft, setTaskDraft] = useState({ title: "", due_date: "", assigned_member_id: "", category: "general" });
+  const [taskDraft, setTaskDraft] = useState(EMPTY_TASK);
+  const [taskErrors, setTaskErrors] = useState({});
+
   const [showRhythm, setShowRhythm] = useState(false);
-  const [rhythmDraft, setRhythmDraft] = useState({ name: "", cadence: "weekly", last_observed: "", notes: "" });
+  const [rhythmDraft, setRhythmDraft] = useState(EMPTY_RHYTHM);
+  const [rhythmErrors, setRhythmErrors] = useState({});
 
   const refresh = async () => {
     const today = new Date().toISOString().slice(0, 10);
     const inAMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const [e, t, hm, ry] = await Promise.all([
-      api.get(`/schedule/events?start=${today}&end=${inAMonth}`),
-      api.get("/tasks"),
-      api.get("/household/me"),
-      api.get("/rhythms"),
-    ]);
-    setEvents(e.data.events);
-    setTasks(t.data.tasks);
-    setMembers(hm.data.members);
-    setRhythms(ry.data.rhythms);
+    setWindowStart(today);
+    setWindowEnd(inAMonth);
+    try {
+      const [e, t, hm, ry] = await Promise.all([
+        api.get(`/schedule/events?start=${today}&end=${inAMonth}`),
+        api.get("/tasks"),
+        api.get("/household/me"),
+        api.get("/rhythms"),
+      ]);
+      setEvents(e.data.events || []);
+      setTasks(t.data.tasks || []);
+      setMembers(hm.data.members || []);
+      setRhythms(ry.data.rhythms || []);
+    } catch (err) {
+      console.error("Schedule refresh failed", err);
+      toast.error(explainError(err, "Could not load the schedule."));
+    }
   };
 
   useEffect(() => { refresh(); }, []);
 
+  const validateEvent = (d) => {
+    const errs = {};
+    if (!d.title?.trim()) errs.title = "Title is required.";
+    if (!d.event_date) errs.event_date = "Pick a date.";
+    if (d.event_date && !/^\d{4}-\d{2}-\d{2}$/.test(d.event_date)) errs.event_date = "Date must be YYYY-MM-DD.";
+    if (d.event_time && !/^\d{2}:\d{2}$/.test(d.event_time)) errs.event_time = "Time must be HH:MM.";
+    if (!EVENT_TYPES.includes(d.type)) errs.type = "Pick a valid type.";
+    return errs;
+  };
+
   const addEvent = async () => {
-    if (!eventDraft.title.trim() || !eventDraft.event_date) return;
-    await api.post("/schedule/events", eventDraft);
-    setShowEvent(false);
-    setEventDraft({ title: "", event_date: "", event_time: "", type: "family", notes: "", member_ids: [] });
-    refresh();
+    const errs = validateEvent(eventDraft);
+    setEventErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      toast.error(Object.values(errs)[0]);
+      return;
+    }
+    // Clean payload — omit empty strings for optional fields so the DB stays tidy.
+    const payload = {
+      title: eventDraft.title.trim(),
+      event_date: eventDraft.event_date,
+      event_time: eventDraft.event_time || null,
+      type: eventDraft.type,
+      notes: eventDraft.notes?.trim() || null,
+      member_ids: Array.isArray(eventDraft.member_ids) ? eventDraft.member_ids : [],
+    };
+    setSubmittingEvent(true);
+    try {
+      await api.post("/schedule/events", payload);
+      setShowEvent(false);
+      setEventDraft(EMPTY_EVENT);
+      setEventErrors({});
+      // If the new event falls OUTSIDE the visible 30-day window, the refreshed
+      // list won't include it — tell the user so they aren't confused.
+      const outsideWindow = windowEnd && (payload.event_date > windowEnd || payload.event_date < windowStart);
+      toast.success(outsideWindow
+        ? `Event created (${payload.event_date}) — outside the next 30 days, so it isn't shown here.`
+        : "Event created."
+      );
+      await refresh();
+    } catch (err) {
+      console.error("Event create failed", err);
+      toast.error(explainError(err, "Could not create the event."));
+    } finally {
+      setSubmittingEvent(false);
+    }
   };
 
   const removeEvent = async (id) => {
-    await api.delete(`/schedule/events/${id}`);
-    refresh();
+    try {
+      await api.delete(`/schedule/events/${id}`);
+      await refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not remove the event."));
+    }
   };
 
   const addTask = async () => {
-    if (!taskDraft.title.trim()) return;
-    await api.post("/tasks", {
-      ...taskDraft,
-      due_date: taskDraft.due_date || null,
-      assigned_member_id: taskDraft.assigned_member_id || null,
-    });
-    setShowTask(false);
-    setTaskDraft({ title: "", due_date: "", assigned_member_id: "", category: "general" });
-    refresh();
+    const errs = {};
+    if (!taskDraft.title?.trim()) errs.title = "Title is required.";
+    if (taskDraft.due_date && !/^\d{4}-\d{2}-\d{2}$/.test(taskDraft.due_date)) errs.due_date = "Date must be YYYY-MM-DD.";
+    setTaskErrors(errs);
+    if (Object.keys(errs).length > 0) { toast.error(Object.values(errs)[0]); return; }
+    try {
+      await api.post("/tasks", {
+        title: taskDraft.title.trim(),
+        category: taskDraft.category,
+        due_date: taskDraft.due_date || null,
+        assigned_member_id: taskDraft.assigned_member_id || null,
+      });
+      setShowTask(false);
+      setTaskDraft(EMPTY_TASK);
+      setTaskErrors({});
+      toast.success("Task added.");
+      await refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not add the task."));
+    }
   };
 
   const toggleTask = async (t) => {
-    await api.patch(`/tasks/${t.task_id}`, { completed: !t.completed });
-    refresh();
+    try {
+      await api.patch(`/tasks/${t.task_id}`, { completed: !t.completed });
+      await refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not update the task."));
+    }
   };
 
   const removeTask = async (id) => {
-    await api.delete(`/tasks/${id}`);
-    refresh();
+    try {
+      await api.delete(`/tasks/${id}`);
+      await refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not remove the task."));
+    }
   };
 
   const addRhythm = async () => {
-    if (!rhythmDraft.name.trim()) return;
-    await api.post("/rhythms", {
-      name: rhythmDraft.name,
-      cadence: rhythmDraft.cadence,
-      last_observed: rhythmDraft.last_observed || null,
-      notes: rhythmDraft.notes || null,
-    });
-    setShowRhythm(false);
-    setRhythmDraft({ name: "", cadence: "weekly", last_observed: "", notes: "" });
-    refresh();
+    const errs = {};
+    if (!rhythmDraft.name?.trim()) errs.name = "Name is required.";
+    if (rhythmDraft.last_observed && !/^\d{4}-\d{2}-\d{2}$/.test(rhythmDraft.last_observed)) errs.last_observed = "Date must be YYYY-MM-DD.";
+    setRhythmErrors(errs);
+    if (Object.keys(errs).length > 0) { toast.error(Object.values(errs)[0]); return; }
+    try {
+      await api.post("/rhythms", {
+        name: rhythmDraft.name.trim(),
+        cadence: rhythmDraft.cadence,
+        last_observed: rhythmDraft.last_observed || null,
+        notes: rhythmDraft.notes?.trim() || null,
+      });
+      setShowRhythm(false);
+      setRhythmDraft(EMPTY_RHYTHM);
+      setRhythmErrors({});
+      toast.success("Rhythm added.");
+      await refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not add the rhythm."));
+    }
   };
 
   const observeRhythm = async (rid) => {
-    await api.post(`/rhythms/${rid}/observe`);
-    refresh();
+    try {
+      await api.post(`/rhythms/${rid}/observe`);
+      await refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not mark the rhythm."));
+    }
   };
 
   const removeRhythm = async (rid) => {
     if (!confirm("Remove this rhythm?")) return;
-    await api.delete(`/rhythms/${rid}`);
-    refresh();
+    try {
+      await api.delete(`/rhythms/${rid}`);
+      await refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not remove the rhythm."));
+    }
   };
 
   // Group events by date
@@ -169,9 +289,9 @@ export default function Schedule() {
                             <div className="text-sm">{e.title}</div>
                             {e.notes && <div className="text-xs text-muted-foreground mt-0.5">{e.notes}</div>}
                           </div>
-                          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{e.type.replace("_", " ")}</span>
+                          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{(e.type || "event").replace("_", " ")}</span>
                           <div className="flex items-center gap-1">
-                            {e.member_ids?.map((mid) => {
+                            {(e.member_ids || []).map((mid) => {
                               const m = members.find((x) => x.member_id === mid);
                               if (!m) return null;
                               return <span key={mid} className={`w-5 h-5 flex items-center justify-center text-[8px] font-mono ${memberTileClass(m.color)}`}>{initials(m.name)}</span>;
@@ -228,15 +348,21 @@ export default function Schedule() {
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" data-testid="schedule-event-modal">
           <div className="bg-background border border-border max-w-md w-full p-8">
             <h2 className="font-serif text-2xl mb-6">New event</h2>
-            <input autoFocus data-testid="schedule-event-title-input" placeholder="Title" value={eventDraft.title} onChange={(e) => setEventDraft({ ...eventDraft, title: e.target.value })} className="w-full bg-transparent border-b border-border focus:border-foreground outline-none py-2 text-base mb-4" />
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <input autoFocus data-testid="schedule-event-title-input" placeholder="Title" value={eventDraft.title} onChange={(e) => setEventDraft({ ...eventDraft, title: e.target.value })} className="w-full bg-transparent border-b border-border focus:border-foreground outline-none py-2 text-base mb-1" />
+            {eventErrors.title && <div className="text-xs text-liturgical-red mb-3" data-testid="schedule-event-title-error">{eventErrors.title}</div>}
+            <div className="grid grid-cols-2 gap-4 mt-4 mb-1">
               <input type="date" data-testid="schedule-event-date-input" value={eventDraft.event_date} onChange={(e) => setEventDraft({ ...eventDraft, event_date: e.target.value })} className="bg-transparent border-b border-border focus:border-foreground outline-none py-2 font-mono" />
               <input type="time" data-testid="schedule-event-time-input" value={eventDraft.event_time} onChange={(e) => setEventDraft({ ...eventDraft, event_time: e.target.value })} className="bg-transparent border-b border-border focus:border-foreground outline-none py-2 font-mono" />
             </div>
-            <div className="overline mb-2">Type</div>
+            {(eventErrors.event_date || eventErrors.event_time) && (
+              <div className="text-xs text-liturgical-red mb-3" data-testid="schedule-event-date-error">
+                {eventErrors.event_date || eventErrors.event_time}
+              </div>
+            )}
+            <div className="overline mt-4 mb-2">Type</div>
             <div className="flex flex-wrap gap-2 mb-4">
               {EVENT_TYPES.map((t) => (
-                <button key={t} data-testid={`schedule-event-type-${t}`} onClick={() => setEventDraft({ ...eventDraft, type: t })} className={`px-3 py-1.5 text-xs border ${eventDraft.type === t ? "border-foreground" : "border-border text-muted-foreground"}`}>{t.replace("_", " ")}</button>
+                <button key={t} type="button" data-testid={`schedule-event-type-${t}`} onClick={() => setEventDraft({ ...eventDraft, type: t })} className={`px-3 py-1.5 text-xs border ${eventDraft.type === t ? "border-foreground" : "border-border text-muted-foreground"}`}>{t.replace("_", " ")}</button>
               ))}
             </div>
             <textarea data-testid="schedule-event-notes-input" rows={2} placeholder="Notes" value={eventDraft.notes} onChange={(e) => setEventDraft({ ...eventDraft, notes: e.target.value })} className="w-full bg-transparent border-b border-border focus:border-foreground outline-none py-2 text-sm mb-4 resize-none" />
@@ -245,7 +371,7 @@ export default function Schedule() {
               {members.map((m) => {
                 const sel = eventDraft.member_ids.includes(m.member_id);
                 return (
-                  <button key={m.member_id} data-testid={`schedule-event-member-${m.member_id}`} onClick={() => setEventDraft({ ...eventDraft, member_ids: sel ? eventDraft.member_ids.filter((x) => x !== m.member_id) : [...eventDraft.member_ids, m.member_id] })} className={`flex items-center gap-2 px-2 py-1 text-xs border ${sel ? "border-foreground" : "border-border text-muted-foreground"}`}>
+                  <button key={m.member_id} type="button" data-testid={`schedule-event-member-${m.member_id}`} onClick={() => setEventDraft({ ...eventDraft, member_ids: sel ? eventDraft.member_ids.filter((x) => x !== m.member_id) : [...eventDraft.member_ids, m.member_id] })} className={`flex items-center gap-2 px-2 py-1 text-xs border ${sel ? "border-foreground" : "border-border text-muted-foreground"}`}>
                     <span className={`w-4 h-4 flex items-center justify-center text-[8px] font-mono ${memberTileClass(m.color)}`}>{initials(m.name)}</span>
                     {m.name}
                   </button>
@@ -253,8 +379,10 @@ export default function Schedule() {
               })}
             </div>
             <div className="flex justify-end gap-3 mt-8">
-              <button onClick={() => setShowEvent(false)} className="text-sm text-muted-foreground" data-testid="schedule-event-cancel">Cancel</button>
-              <button onClick={addEvent} data-testid="schedule-event-submit" className="bg-primary text-primary-foreground px-4 py-2 text-sm">Add event</button>
+              <button type="button" onClick={() => { setShowEvent(false); setEventErrors({}); }} className="text-sm text-muted-foreground" data-testid="schedule-event-cancel">Cancel</button>
+              <button type="button" onClick={addEvent} disabled={submittingEvent} data-testid="schedule-event-submit" className="bg-primary text-primary-foreground px-4 py-2 text-sm disabled:opacity-50">
+                {submittingEvent ? "Adding…" : "Add event"}
+              </button>
             </div>
           </div>
         </div>
