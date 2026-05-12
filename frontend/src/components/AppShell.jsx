@@ -3,6 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { initials, memberTileClass } from "@/lib/liturgical";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { Crest } from "@/components/Crest";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", num: "01" },
@@ -29,14 +30,11 @@ export default function AppShell({ children }) {
       <aside className="hidden md:flex md:flex-col w-64 shrink-0 border-r border-border md:sticky md:top-0 md:self-start md:h-screen md:overflow-y-auto print:hidden">
         <div className="px-6 py-7 border-b border-border">
           <Link to="/dashboard" className="block group" data-testid="brand-link">
-            <div className="overline mb-3">Household OS</div>
-            <img
-              src="/patria-logo.png"
-              alt="Patria"
-              data-testid="brand-logo"
-              className="block w-36 -mx-2 select-none transition-opacity duration-300 group-hover:opacity-90"
-              draggable="false"
-            />
+            <div className="flex items-center gap-2 mb-1">
+              <Crest size={14} className="text-muted-foreground/70" />
+              <span className="overline">Household OS</span>
+            </div>
+            <div className="font-serif text-2xl tracking-tight leading-tight">Patria<span className="text-liturgical-white">.</span></div>
           </Link>
           {household && (
             <div className="mt-4 text-sm text-muted-foreground" data-testid="sidebar-household-name">
@@ -91,8 +89,8 @@ export default function AppShell({ children }) {
       <div className="md:hidden fixed top-0 inset-x-0 z-40 bg-background border-b border-border print:hidden">
         <div className="flex items-center justify-between px-4 h-14">
           <Link to="/dashboard" className="flex items-center gap-2" data-testid="brand-link-mobile">
-            <img src="/patria-logo.png" alt="Patria" data-testid="brand-logo-mobile" className="h-9 w-9 object-contain" draggable="false" />
-            <span className="overline">Household OS</span>
+            <Crest size={14} className="text-muted-foreground" />
+            <span className="font-serif text-lg">Patria<span className="text-liturgical-white">.</span></span>
           </Link>
           <button onClick={logout} className="text-xs text-muted-foreground" data-testid="logout-button-mobile">Sign out</button>
         </div>
