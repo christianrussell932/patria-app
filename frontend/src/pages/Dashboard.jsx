@@ -34,8 +34,8 @@ export default function Dashboard() {
                 {lit.name}
               </h1>
               <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
-                <span className={liturgicalText(lit.color)}>● {lit.season}</span>
-                {lit.rank !== "feria" && (
+                <span className={liturgicalText(lit.color)}>● {lit.season_label || lit.season}</span>
+                {lit.rank !== "feria" && lit.rank !== "sunday" && (
                   <span className="font-mono text-xs uppercase tracking-wider">{lit.rank}</span>
                 )}
                 {lit.fasting && <span className="text-liturgical-violet">FAST</span>}
@@ -51,10 +51,27 @@ export default function Dashboard() {
             <Snapshot value={data.members_count} label="Members" />
           </div>
         </div>
-        {household?.mission_statement && (
-          <p className="mt-6 italic text-sm text-muted-foreground max-w-2xl border-l border-border pl-4">
-            “{household.mission_statement}”
-          </p>
+
+        {/* Family Mission & Values — single prominent home (no duplicate card below) */}
+        {(household?.mission_statement || (household?.values && household.values.length > 0)) && (
+          <div className="mt-8 pt-6 border-t border-border grid md:grid-cols-12 gap-6 md:gap-10">
+            {household?.mission_statement && (
+              <div className="md:col-span-7" data-testid="dashboard-mission-line">
+                <div className="overline mb-2">Family Mission</div>
+                <p className="font-serif text-xl md:text-2xl leading-snug italic">
+                  &ldquo;{household.mission_statement}&rdquo;
+                </p>
+              </div>
+            )}
+            {household?.values?.length > 0 && (
+              <div className="md:col-span-5" data-testid="dashboard-values-line">
+                <div className="overline mb-2">Family Values</div>
+                <div className="font-serif text-base md:text-lg leading-relaxed">
+                  {household.values.join(" · ")}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </header>
 
@@ -230,7 +247,7 @@ export default function Dashboard() {
           )}
         </Panel>
 
-        {/* Active challenge */}
+        {/* Active season — full width if present */}
         {active_challenge && (
           <Panel
             testId="dashboard-challenge-panel"
@@ -252,33 +269,10 @@ export default function Dashboard() {
           </Panel>
         )}
 
-        {/* Mission preview */}
-        <Panel
-          testId="dashboard-mission-panel"
-          className={active_challenge ? "lg:col-span-5" : "lg:col-span-7"}
-          label="Mission"
-          action={<Link to="/mission" className="text-xs text-muted-foreground hover:text-foreground" data-testid="dashboard-mission-link">Edit →</Link>}
-        >
-          {household?.mission_statement ? (
-            <p className="font-serif text-xl leading-snug">“{household.mission_statement}”</p>
-          ) : (
-            <div className="text-sm text-muted-foreground">
-              No mission statement yet. <Link to="/mission" className="underline">Write one →</Link>
-            </div>
-          )}
-          {household?.values?.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {household.values.slice(0, 6).map((v) => (
-                <span key={v} className="text-xs border border-border px-2 py-0.5 font-mono uppercase tracking-wider">{v}</span>
-              ))}
-            </div>
-          )}
-        </Panel>
-
         {/* Family Council CTA */}
         <Panel
           testId="dashboard-council-panel"
-          className={active_challenge ? "lg:col-span-12" : "lg:col-span-5"}
+          className={active_challenge ? "lg:col-span-5" : "lg:col-span-12"}
           label="This week's council"
           action={<Link to="/council" className="text-xs text-muted-foreground hover:text-foreground" data-testid="dashboard-council-link">Open →</Link>}
         >

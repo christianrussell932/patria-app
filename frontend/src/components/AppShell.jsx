@@ -27,7 +27,7 @@ export default function AppShell({ children }) {
 
   return (
     <div className="min-h-screen flex bg-background text-foreground">
-      <aside className="hidden md:flex md:flex-col w-64 border-r border-border shrink-0 print:hidden">
+      <aside className="hidden md:flex md:flex-col w-64 shrink-0 border-r border-border md:sticky md:top-0 md:self-start md:h-screen md:overflow-y-auto print:hidden">
         <div className="px-6 py-7 border-b border-border">
           <Link to="/dashboard" className="block group" data-testid="brand-link">
             <div className="flex items-center gap-2 mb-1">

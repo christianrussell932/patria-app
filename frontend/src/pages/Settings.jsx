@@ -51,9 +51,10 @@ export default function Settings() {
         </div>
         <div>
           <label className="block text-xs text-muted-foreground mb-2">Calendar variant</label>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {[
               { v: "roman", l: "Roman" },
+              { v: "traditional", l: "Traditional Roman — 1962" },
               { v: "byzantine", l: "Byzantine" },
             ].map((c) => (
               <button

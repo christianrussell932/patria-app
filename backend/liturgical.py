@@ -199,6 +199,44 @@ def _name_traditional(d: date, season: str, season_start: date,
     return weekday
 
 
+def _season_label(d: date, season: str, season_start: date,
+                  baptism_of_lord: date, ash_wed: date,
+                  pentecost: date, christ_the_king: date, variant: str) -> str:
+    """Always-on secondary line, e.g. 'Easter Season · VI Week of Easter'."""
+    if season == "Advent":
+        week = ((d - season_start).days // 7) + 1
+        return f"Advent · {roman(week)} Week of Advent"
+    if season == "Christmas":
+        return "Christmas Season"
+    if season == "Septuagesima":
+        diff = (d - season_start).days
+        weeks = diff // 7
+        names = ["Septuagesima", "Sexagesima", "Quinquagesima"]
+        return f"Pre-Lent · {names[min(weeks, 2)]}"
+    if season == "Lent":
+        first_sunday_lent = ash_wed + timedelta(days=(6 - ash_wed.weekday()) % 7 or 7)
+        if d < first_sunday_lent:
+            return "Lent · Days of Ashes"
+        week = ((d - first_sunday_lent).days // 7) + 1
+        return f"Lent · {roman(week)} Week of Lent"
+    if season in ("Easter", "Easter Octave"):
+        week = ((d - season_start).days // 7) + 1
+        return f"Easter Season · {roman(week)} Week of Easter"
+    if season == "Ordinary Time":
+        if d < ash_wed:
+            week = ((d - baptism_of_lord).days // 7) + 1
+        else:
+            weeks_to_ck = ((christ_the_king - d).days // 7)
+            week = 34 - weeks_to_ck
+        week = max(1, min(34, week))
+        if variant == "traditional":
+            if d < ash_wed:
+                return f"Time after Epiphany · {roman(week)} Sunday after Epiphany"
+            return f"Time after Pentecost · {roman(week)} Sunday after Pentecost"
+        return f"Ordinary Time · {roman(week)} Week in Ordinary Time"
+    return season
+
+
 def liturgical_for(d: date, variant: str = "roman") -> dict:
     year = d.year
     variant = variant if variant in ("roman", "traditional") else "roman"
@@ -321,6 +359,7 @@ def liturgical_for(d: date, variant: str = "roman") -> dict:
         "color": color,
         "rank": rank,
         "season": season_name,
+        "season_label": _season_label(d, season_name, season_start, bol, ash_wednesday, pentecost, christ_the_king, variant),
         "fasting": fasting,
         "abstinence": abstinence,
         "is_sunday": is_sunday,

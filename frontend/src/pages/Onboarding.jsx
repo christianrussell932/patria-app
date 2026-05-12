@@ -54,8 +54,17 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen flex items-center bg-background text-foreground py-12">
       <div className="w-full max-w-xl mx-auto px-6">
-        <div className="font-serif text-3xl mb-2">Patria<span className="text-liturgical-white">.</span></div>
-        <div className="overline mb-12">Setting up the household · {String(step).padStart(2, "0")} / 03</div>
+        <div className="flex flex-col items-center mb-6">
+          <img
+            src="/patria-logo.png"
+            alt="Patria"
+            data-testid="onboarding-mark"
+            className="w-24 mb-3 mix-blend-multiply dark:mix-blend-screen dark:invert dark:opacity-90 select-none"
+            draggable="false"
+          />
+          <div className="font-serif text-2xl">Patria<span className="text-liturgical-white">.</span></div>
+        </div>
+        <div className="overline mb-12 text-center">Setting up the household · {String(step).padStart(2, "0")} / 03</div>
 
         {step === 1 && (
           <div className="space-y-8 animate-fade-in">
@@ -86,9 +95,10 @@ export default function Onboarding() {
               </div>
               <div>
                 <label className="overline block mb-2">Liturgical calendar</label>
-                <div className="flex gap-2 mt-1">
+                <div className="flex flex-wrap gap-2 mt-1">
                   {[
                     { v: "roman", l: "Roman" },
+                    { v: "traditional", l: "Traditional Roman — 1962" },
                     { v: "byzantine", l: "Byzantine" },
                   ].map((c) => (
                     <button

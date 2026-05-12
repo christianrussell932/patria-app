@@ -1,0 +1,44 @@
+{
+  "summary": "Patria v0.4 refinement round end-to-end verified. Backend: 104/104 pytest PASS (93 regression suites untouched + 11 new tests in test_patria_v4_season_label.py covering the new GET /api/liturgical/today.season_label field across Easter/OT/Christmas/Lent/Advent, the St. Francis 2026-10-04 fixed-feast precedence with secondary 'Ordinary Time · …' label, and Traditional variant labels 'Time after Pentecost' and 'Time after Epiphany'). Frontend (Playwright + demo session): Landing shows new headline 'An operating system for intentional Catholic family life.', 'What lives inside' list, no 'Eight Systems' numbering, ornate logo img /patria-logo.png at [data-testid=landing-mark]; Onboarding step 1 renders three calendar buttons (Roman / Traditional Roman — 1962 / Byzantine) with correct testids and ornate logo at [data-testid=onboarding-mark]; Settings exposes the same three calendar testids; AppShell sidebar has 'hidden md:flex … md:sticky md:top-0 md:self-start md:h-screen md:overflow-y-auto' (sticky verified by scroll-to-bottom: bounding box y stays ~0) and contains NO patria-logo.png img (text wordmark only); Dashboard has prominent [data-testid=dashboard-mission-line] + [data-testid=dashboard-values-line] above the lower panels, duplicate [data-testid=dashboard-mission-panel] removed, [data-testid=dashboard-council-panel] still present, season label contains '·', and no FERIA rank chip is shown; Household Order page (/order) renders exactly 7 [data-testid=order-pillar-*] tiles (spiritual/financial/order/marriage/children/health/hospitality, no 8th empty placeholder), heading 'Seven systems of the family.', Marriage hint reads 'Date nights, communication, unity' (no 'intimacy' anywhere on the page), Hospitality tile carries the 'lg:col-span-3' class for full-width on lg, every tile shows '+ Add practice' (no '+ Add rule' anywhere); the Add Practice modal title says 'A new household practice.' and the submit button reads 'Add practice'; all 7 per-category placeholders in the modal title input match the v0.4 brief exactly (spiritual: night prayer/Family Rosary; financial: review household budget; order: kitchen reset/laundry; marriage: date night; children: catechism; health: screens off 9pm; hospitality: host another family).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/liturgical/today", "issue": "When Ordinary Time falls before Ash Wednesday under Traditional variant, season_label reads 'Time after Epiphany · N Sunday after Epiphany' — uses the same Roman OT week numbering instead of true post-Epiphany Sunday count. Acceptable for MVP but not strictly accurate."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Household Order — Hospitality tile (7th)", "issues": ["Class string contains 'lg:col-span-3' twice (and an intermediate 'sm:col-span-2'). Functionally fine since duplicates collapse, but at 1920px the tile content visually occupies only the leftmost third of the row even though the cell spans all 3 columns — the inner flex-col does not stretch its inner list/button to the cell width. Consider an inner two-column layout (rule list left, +Add practice right) or w-full inner blocks so the full-width band actually reads as full-width."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_patria_v4_season_label.py",
+    "/app/backend/tests/test_patria_v3_modules.py",
+    "/app/backend/tests/test_patria_modules.py",
+    "/app/backend/tests/test_catholic_household_os.py",
+    "/app/test_reports/pytest/v4_full_results.xml"
+  ],
+  "action_items": [
+    "(Polish) Make the 7th Household Order tile (Hospitality) visually feel full-width: stretch the inner rule list / + Add practice button to the cell width, or split the wide row into rule-list-left + add-practice-right.",
+    "(Tidy) Remove the duplicate 'lg:col-span-3' token in the Hospitality span string (purely cosmetic — Tailwind dedupes)."
+  ],
+  "critical_code_review_comments": [
+    "_season_label() in /app/backend/liturgical.py reuses the modern OT week math for the Traditional 'Time after Epiphany' branch — strictly the count should be 'Sundays after Epiphany' (1..6 ish). Cosmetic, but a Traditional user might notice 'XXVIII Sunday after Epiphany' in late OT, which is impossible. Worth gating with a small specific helper.",
+    "server.py is still 1600+ lines — splitting into routers (council/sacred_heart/rhythms/liturgical/budget/schedule/tasks/goals/dashboard/household) remains the largest open piece of tech debt, carried forward from iteration_4.",
+    "finalize_meeting non-idempotency (carried over from v0.3 review) is still unaddressed.",
+    "_next_due for rhythms is still based on fixed timedelta(30/91/365) — calendar-aware math (relativedelta) recommended.",
+    "Sacred-Heart anniversary date(year+1, 2, 29) will still throw on non-leap years — needs Feb 28 fallback."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_patria_v4_season_label.py (new — 11 tests for season_label)"
+  ],
+  "success_rate": {"backend": "100% (104/104)", "frontend": "100% of v0.4 requested flows"},
+  "test_credentials": "Demo session: SESSION_TOKEN=demo_session_patria, USER_ID=demo-user-patria, HOUSEHOLD_ID=hh_demo_patria. Bearer for backend (pytest seeds its own throwaway user); session_token cookie for frontend Playwright.",
+  "seed_data_creation": "None new. Pytest fixtures still seed an ephemeral test-user-{ts} + isolated v3 household which fully torn down. No demo-data modifications.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Routes (important — easy to mis-guess): /order is Household Order (NOT /household — that 301s to /members); /spiritual?tab={calendar|prayer|seasons|sacred-heart|challenges}; /council, /budget, /mission, /schedule, /members, /settings. Household Order testids: order-page, order-pillar-{spiritual|financial|order|marriage|children|health|hospitality}, order-add-{key}-button, order-draft-modal, order-draft-title-input, order-draft-cadence-{daily|weekly|monthly|quarterly|yearly}, order-draft-assign-{member_id}, order-draft-cancel, order-draft-submit, order-rule-{rule_id}, order-rule-delete-{rule_id}. Onboarding testids: onboarding-mark (logo img), onboarding-household-name-input, onboarding-patron-saint-input, onboarding-calendar-{roman|traditional|byzantine}-button, onboarding-step-1-next-button … step-3-back-button, onboarding-finish-button. Settings: settings-calendar-{roman|traditional|byzantine}. Dashboard: dashboard-mission-line, dashboard-values-line, dashboard-council-panel; the old dashboard-mission-panel has been REMOVED (assert absence). Backend: GET /api/liturgical/today?d=YYYY-MM-DD&variant={roman|traditional} now also returns `season_label` (always non-empty string).",
+  "rca of the issue": "No bugs reproduced. Only an aesthetic note on the 7th Household Order tile — the parent cell correctly spans 3 of 3 lg columns, but the inner flex-col leaves the right two-thirds visually empty, so the 'full-width footer-style' band reads as a left-aligned narrow card. Filed in action_items for a small layout tweak."
+}

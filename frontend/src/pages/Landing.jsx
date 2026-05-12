@@ -22,20 +22,20 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* Hero */}
+      {/* Hero — ornate logo (full mark) used ceremonially on the public page */}
       <section className="border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 md:px-10 py-20 md:py-32 grid md:grid-cols-12 gap-10 items-end">
-          <div className="md:col-span-8">
+        <div className="max-w-6xl mx-auto px-6 md:px-10 py-20 md:py-32 grid md:grid-cols-12 gap-10 items-center">
+          <div className="md:col-span-7">
             <div className="overline mb-6">Anno Domini · MMXXVI</div>
             <h1 className="font-serif text-5xl md:text-7xl tracking-tighter leading-[0.95]">
               An operating system <br className="hidden md:block" />
-              for the intentional <br className="hidden md:block" />
-              <span className="italic">Catholic family.</span>
+              for intentional <br className="hidden md:block" />
+              <span className="italic">Catholic family life.</span>
             </h1>
             <p className="mt-8 max-w-xl text-lg text-muted-foreground leading-relaxed">
-              Patria is the executive layer of family life — a household command
-              center for your rule, your budget, your schedule, your formation, and
-              your interior life. Quietly powerful. Deeply intentional.
+              Patria is the executive layer of household life — a single, calm place for
+              your rule, your budget, your schedule, your formation, and your interior
+              life. Quietly powerful. Deeply intentional.
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-4">
               <button
@@ -50,27 +50,14 @@ export default function Landing() {
               </span>
             </div>
           </div>
-          <div className="md:col-span-4 hidden md:block">
-            <div className="border-l border-border pl-6 space-y-4">
-              {[
-                { num: "01", k: "Dashboard", d: "the command center" },
-                { num: "02", k: "Family Council", d: "the weekly meeting" },
-                { num: "03", k: "Spiritual Life", d: "rhythm of the soul" },
-                { num: "04", k: "Household Order", d: "rule of the home" },
-                { num: "05", k: "Budget & Stewardship", d: "every dollar accounted" },
-                { num: "06", k: "Mission & Goals", d: "where we are going" },
-                { num: "07", k: "Schedule", d: "the next thirty days" },
-                { num: "08", k: "Members", d: "who walks with us" },
-              ].map((s) => (
-                <div key={s.k} className="flex items-baseline gap-3">
-                  <span className="font-mono text-[10px] text-muted-foreground w-6">{s.num}</span>
-                  <div className="flex-1">
-                    <div className="text-sm">{s.k}</div>
-                    <div className="text-xs text-muted-foreground">{s.d}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="md:col-span-5 flex justify-center">
+            <img
+              src="/patria-logo.png"
+              alt="Patria"
+              data-testid="landing-mark"
+              className="w-full max-w-sm mix-blend-multiply dark:mix-blend-screen dark:invert dark:opacity-90 select-none"
+              draggable="false"
+            />
           </div>
         </div>
       </section>
@@ -100,21 +87,22 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Modules */}
+      {/* Modules — described, never numbered as 'systems' */}
       <section className="border-b border-border">
         <div className="max-w-6xl mx-auto px-6 md:px-10 py-20">
-          <div className="overline mb-10">Eight systems · One household</div>
+          <div className="overline mb-10">What lives inside</div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border">
             {[
-              { num: "01", title: "Dashboard", body: "The command center. Today's liturgical day, your schedule, prayer streak, tasks due, budget alerts, date night, goal progress — at a glance." },
-              { num: "02", title: "Family Council", body: "A standing weekly meeting. Patria composes the agenda from your week and turns decisions into tasks. The executive ritual of the household." },
-              { num: "03", title: "Spiritual Life", body: "The interior rhythm of the home. Liturgical calendar, prayer rhythm, seasons, and a quietly sacred Sacred Heart anchor — entirely optional." },
-              { num: "04", title: "Household Order", body: "Seven systems: Spiritual, Financial, Order, Marriage, Child Formation, Health, Hospitality. Define routines and assign by member." },
-              { num: "05", title: "Budget & Stewardship", body: "Tithing, monthly categories, savings goals, debt reduction. Calm and premium — not Mint, not YNAB, not corporate fintech." },
-              { num: "06", title: "Mission & Goals", body: "A family mission statement, a list of values, a technology policy, short- and long-term goals tracked together." },
+              { title: "Dashboard", body: "The command center. Today's liturgical day, your schedule, prayer rhythm, tasks due, budget alerts, date night, goal progress — at a glance." },
+              { title: "Family Council", body: "A standing weekly meeting. Patria composes the agenda from your week and turns decisions into tasks. The executive ritual of the household." },
+              { title: "Spiritual Life", body: "The interior rhythm of the home. Liturgical calendar (Roman or 1962), prayer rhythm, seasons, and a quietly sacred Sacred Heart anchor — entirely optional." },
+              { title: "Household Order", body: "The seven systems of the family — Spiritual, Financial, Order, Marriage, Child Formation, Health, Hospitality. Define your practices and assign by member." },
+              { title: "Budget & Stewardship", body: "Tithing, monthly categories, savings goals, debt reduction. Calm and premium — not Mint, not YNAB, not corporate fintech." },
+              { title: "Mission & Goals", body: "A family mission statement, a list of values, a technology policy, short- and long-term goals tracked together." },
+              { title: "Schedule", body: "Events, tasks and recurring household rhythms — date night, monthly confession, quarterly retreat. The execution layer of the home." },
+              { title: "Members", body: "The relational center. Mission, household health, parents, children, roles. Who walks with us." },
             ].map((m) => (
-              <div key={m.num} className="bg-background p-8 md:p-10">
-                <div className="font-mono text-xs text-muted-foreground">{m.num}</div>
+              <div key={m.title} className="bg-background p-8 md:p-10">
                 <h3 className="font-serif text-2xl mt-2 mb-3">{m.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{m.body}</p>
               </div>

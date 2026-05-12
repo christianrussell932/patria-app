@@ -118,7 +118,7 @@ export default function Schedule() {
       </header>
 
       {/* Rhythms */}
-      <Panel testId="schedule-rhythms-panel" className="mb-6" label="Household rhythms" hint="Recurring commitments the family keeps — cyclical, seasonal, intentional. Not a to-do list.">
+      <Panel testId="schedule-rhythms-panel" className="mb-6" label="Household rhythms" hint="Recurring commitments the family keeps — cyclical, seasonal, intentional. (Not one-off tasks.)">
         {rhythms.length === 0 ? (
           <div className="text-sm text-muted-foreground py-2">
             No rhythms yet. Common ones: <em>weekly date night, monthly Confession, quarterly retreat, yearly pilgrimage.</em>
@@ -151,7 +151,7 @@ export default function Schedule() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Timeline */}
-        <Panel testId="schedule-events-panel" className="lg:col-span-8" label="Events">
+        <Panel testId="schedule-events-panel" className="lg:col-span-8" label="Events" hint="Time-bound appointments and gatherings.">
           {Object.keys(grouped).length === 0 ? (
             <div className="text-sm text-muted-foreground py-2">Nothing on the docket. The road is clear.</div>
           ) : (
@@ -189,7 +189,7 @@ export default function Schedule() {
         </Panel>
 
         {/* Tasks */}
-        <Panel testId="schedule-tasks-panel" className="lg:col-span-4" label="Tasks">
+        <Panel testId="schedule-tasks-panel" className="lg:col-span-4" label="Tasks" hint="Things that need to be done — one-offs.">
           {tasks.length === 0 ? (
             <div className="text-sm text-muted-foreground py-2">No open tasks.</div>
           ) : (
