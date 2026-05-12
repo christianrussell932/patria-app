@@ -5,85 +5,72 @@ A structured operating system for intentional Catholic family life. Repositioned
 
 ## Brand
 - Name: **Patria**
-- Wordmark: `Patria.` (gold liturgical-white period)
-- Tagline: *An operating system for the intentional Catholic family.*
-- Restraint • Editorial typography • Liturgical accent system • Calm executive feel.
+- Wordmark: `Patria.` (gold liturgical-white period) — used inside the app
+- Ornate mother-mark (Sacred Heart engraving) — used **ceremonially** on public surfaces only (Landing hero, Onboarding) so the symbol retains weight
+- Tagline: *An operating system for intentional Catholic family life.*
 
 ## Architecture
-- **Frontend:** React 19, React Router 7, Tailwind, Radix/shadcn, axios. Fraunces serif + Geist sans + JetBrains Mono. Light "bone white" + dark "candlelight". `Crest` SVG monogram + `CrestDivider` + `SacredHeartEngraving` for restrained editorial DNA.
-- **Backend:** FastAPI (`/api` prefix), MongoDB (motor), Pydantic v2. Liturgical engine supports Roman + Traditional Roman variants (Septuagesima/Sexagesima/Quinquagesima, "Sundays after Pentecost/Epiphany", proper ferial naming like *"Tuesday — II Week in Ordinary Time"*).
+- **Frontend:** React 19, React Router 7, Tailwind, Radix/shadcn, axios. Fraunces serif + Geist sans + JetBrains Mono. Light "bone white" + dark "candlelight". `Crest` SVG monogram + `CrestDivider` + `SacredHeartEngraving` for restrained editorial DNA. Sidebar is sticky on desktop (`md:sticky md:top-0 md:h-screen`).
+- **Backend:** FastAPI (`/api` prefix), MongoDB (motor), Pydantic v2. Liturgical engine supports Roman, **Traditional Roman 1962**, and Byzantine (label-only) variants. Every day exposes a `season_label` secondary descriptor (e.g. *"Easter Season · VI Week of Easter"*) alongside the primary feast/ferial `name`.
 - **Auth:** Emergent-managed Google OAuth (cookie + Bearer fallback).
-- **Mongo collections:** users, user_sessions, households, members, rules, rule_checkins, prayer_logs, challenges, challenge_checkins, budget_categories, budget_transactions, savings_goals, events, tasks, family_goals, **meetings, rhythms**.
+- **Mongo collections:** users, user_sessions, households, members, rules, rule_checkins, prayer_logs, challenges, challenge_checkins, budget_categories, budget_transactions, savings_goals, events, tasks, family_goals, meetings, rhythms.
 
-## Information Architecture (sidebar — 8 items)
-01. **Dashboard** — command center · Household Health (diagnostic, not gamified) · Council CTA
-02. **Family Council** — weekly meeting workspace · auto-composed agenda · printable summary · finalize creates Tasks
-03. **Spiritual Life** — tabs: Liturgical Calendar · Prayer Rhythm · Seasons · **Sacred Heart** (optional anchor)
-04. **Household Order** — 7 systems of the family
-05. **Budget & Stewardship** — categories, ledger, savings goals, tithe %, stewardship principles
-06. **Mission & Goals** — mission statement, values, technology policy, member roles, short/long goals
-07. **Schedule** — events + tasks + **Household Rhythms** (daily/weekly/monthly/quarterly/yearly recurring commitments)
-08. **Members** — relational center, household health, parents/children, technology policy
+## Information Architecture (sidebar — 8 modules, never called "systems")
+01. **Dashboard** — command center · feast-day-first liturgical header · Family Mission + Values prominent
+02. **Family Council** — weekly meeting, auto-composed agenda, printable summary
+03. **Spiritual Life** — Liturgical Calendar · Prayer Rhythm · Seasons · Sacred Heart (optional)
+04. **Household Order** — seven systems of the family (Spiritual, Financial, Order, Marriage, Children, Health, Hospitality) — standing **practices**, not "rules"
+05. **Budget & Stewardship** — categories, ledger, savings, tithing
+06. **Mission & Goals** — mission statement, values, technology policy, roles, short/long goals
+07. **Schedule** — events (time-bound), tasks (one-offs), rhythms (recurring commitments)
+08. **Members** — relational center
 
-## User Personas
-- **The Householder Father / Mother** (25–50): runs the family with intentional discipline; wants a calm command center.
-- **Both Spouses Aligned:** mission, budget, schedule, formation — one place.
-- **The Child:** parent-controlled profile.
-
-## Core Requirements (static)
-1. **Dashboard** — single-glance liturgical day, Household Health composite, today's schedule, tasks, budget, prayer streak, goals, date night, mission, council CTA, active season.
-2. **Family Council** — weekly executive ritual; agenda from past 7 days; priorities, assignments, notes, decisions; finalize → tasks.
-3. **Spiritual Life** — Liturgical Calendar (Roman/Traditional), Prayer Rhythm, Seasons, Sacred Heart.
-4. **Sacred Heart** — optional enthronement workflow with Form A (priest-led) and Form B (family), Act of Consecration, yearly renewal.
-5. **Household Order** — 7-system rule of life, daily/weekly cadence, per-member assignment.
-6. **Budget & Stewardship** — categories, ledger, tithe %, savings goals, principles. Calm, premium.
-7. **Mission & Goals** — mission, values, technology policy, roles, short/long goals.
-8. **Schedule** — events (date/time/type/members), tasks (assignee/category/due), **rhythms** (cyclical commitments).
-9. **Members** — mission preview, health score, parent/child sections, technology policy.
+## Conceptual Layers (clarified in copy throughout)
+- **Household Order** → *What does our family commit to?* (standing practices)
+- **Schedule** → *When does it happen?* (events, tasks, rhythms)
+- **Tasks** → *What needs to be done?* (one-offs)
+- **Family Council** → *How are we doing?* (weekly review)
 
 ## Implemented
-### v0.1 (Jan 2026) — Domus
-- Landing, Emergent Google Auth, onboarding
-- Today, Calendar, Rule of Life, Prayer, Challenges, Members, Settings
-- 34/34 backend + 100% frontend e2e
+### v0.1 — Domus (Jan 2026)
+- Foundation. 34/34 backend + 100% frontend e2e
 
 ### v0.2 — Patria restructure
-- Rename to Patria
-- New IA (7 then 8 items), Dashboard command center
-- Budget & Stewardship, Mission & Goals, Schedule, expanded Members
-- Liturgical color system as semantic data
-- 68/68 backend + 100% frontend e2e
+- New IA, Dashboard, Budget, Mission, Schedule, expanded Members. 68/68 backend + 100% frontend
 
-### v0.3 — Refinement (current)
-- **Family Council** module: agenda auto-composer, working session, finalize → Tasks (idempotent)
-- **Sacred Heart** tab: hero engraving (inline monochrome SVG with restrained oxblood drop), 3-step "How it works", ceremony Form A (priest) + Form B (family), Act of Consecration, optional yearly renewal — entirely optional, never mandatory
-- **Liturgical engine v2:** proper ferial naming (no more generic "Feria"); Traditional Roman variant overlay (Septuagesima/Sexagesima/Quinquagesima, "Sundays after Epiphany/Pentecost"); calendar variant fetched from household settings; Dashboard rank chip hidden on ferial days
-- **Household Rhythms** (recurring commitments) in Schedule with cadence-aware next-due
-- **Crest** monogram and `CrestDivider` introduced as restrained visual DNA across AppShell, Council, Sacred Heart
-- **Dashboard refresh:** "Household health" framing (reflective, not a trophy); Council CTA panel
-- **Members cleanup:** removed duplicate Roles section (now only on Mission)
-- **Landing:** 8-module list
-- 93/93 backend + 100% frontend e2e
+### v0.3 — Refinement
+- Family Council module, Sacred Heart tab (optional), liturgical engine v2 (proper ferial naming, Traditional Roman overlay), Household Rhythms, Crest motif. 93/93 backend + 100% frontend
+
+### v0.4 — Cleanup & Coherence (current)
+- **Landing:** removed "Eight Systems" numbering — replaced with *"An operating system for intentional Catholic family life."* and *"What lives inside"*. Ornate Patria mark now sits ceremonially in the hero.
+- **Onboarding & Settings:** added **Traditional Roman Calendar — 1962** as third option (Roman / Traditional / Byzantine). Ornate logo placed at top of onboarding wizard.
+- **Sidebar:** sticky on desktop. Text wordmark only inside the app — no repeated ornate logo embedding.
+- **Dashboard liturgical header:** feast/saint name is now primary; secondary line uses always-on `season_label` (e.g. *"Easter Season · VI Week of Easter"*); ferial rank chip hidden.
+- **Dashboard Mission/Values:** Family Mission + Family Values shown prominently below the date row; **duplicate Mission card removed** from below.
+- **Household Order:** 7-tile grid resolves cleanly (7th spans full width with proper inner two-column layout). Heading kept as *"Seven systems of the family."* (the framework). Every "+ Add rule" became **"+ Add practice"** with category-specific placeholder examples in the modal. Marriage hint changed from *"intimacy"* → *"unity"*.
+- **Schedule:** hint copy added to make the Events / Tasks / Rhythms distinction immediately clear.
+- 104/104 backend + 100% frontend e2e
 
 ## Backlog
 ### P0 (next session)
-- Split `server.py` (~1,625 lines) into routers (council, sacred_heart, rhythms, liturgical, budget, schedule, tasks, goals, household)
-- Calendar-aware `_next_due` math for rhythms (use `dateutil.relativedelta`)
-- Streak sparklines per rule on Household Order
+- Split `server.py` (~1,650 lines) into per-domain routers (council, sacred_heart, rhythms, liturgical, budget, schedule, tasks, goals, dashboard, household)
+- Use `dateutil.relativedelta` for cadence-aware rhythm next-due and Sacred-Heart anniversary (handle Feb 29 fallback to Feb 28)
+- True "Sundays after Epiphany" counting in Traditional variant `_season_label`
+- Idempotent `finalize_meeting` (re-finalize should not double-create tasks)
 
 ### P1
-- AI module (Claude Sonnet 4.5): mission-statement coach, weekly Council agenda enrichment, child-formation prompts, gentle reflection on the past week
-- PWA push notifications anchored to Angelus / Compline / Council day
-- Recurring events + recurring tasks (chore rota)
+- AI module (Claude Sonnet 4.5): mission-statement coach, Council agenda enrichment, formation prompts
+- PWA push notifications for Angelus / Compline / Council day
+- Recurring events + chore rota
 - Weighted Household Health (cadence + assignment-aware)
-- Saint database with biographical pages and feast-day actions
+- Saint database with biographical pages
 
 ### P2
 - "Liturgical Year Wrap" — printable annual report
 - Stripe paid plan
 - Native mobile (Capacitor)
-- Full Byzantine calendar
-- Multi-user shared households (spouse co-edit)
+- Full Byzantine calendar engine
+- Multi-user shared households
 
 ## Test Credentials
-See `/app/memory/test_credentials.md`. Demo session: `SESSION_TOKEN=demo_session_patria`, household `hh_demo_patria`.
+See `/app/memory/test_credentials.md`. Demo session: `SESSION_TOKEN=demo_session_patria`.

@@ -104,12 +104,12 @@ export default function HouseholdOrder() {
         </p>
       </header>
 
-      {/* 7 tiles in 1 / 2 / 3 / and 3+3+1 (lg) — no orphan 8th cell because we cap at lg:grid-cols-3 */}
+      {/* 7 tiles in 1 / 2 / 3 columns — 7th (Hospitality) spans full width on lg so the row resolves cleanly. */}
       <div className="grid gap-px bg-border border border-border grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {PILLARS.map((p, i) => {
           const isLast = i === PILLARS.length - 1;
-          // The last (7th) card spans full width on lg so the row resolves cleanly with no empty cells.
-          const span = isLast ? "lg:col-span-3 sm:col-span-2 lg:col-span-3" : "";
+          const span = isLast ? "sm:col-span-2 lg:col-span-3" : "";
+          const rules_p = byPillar(p.key);
           return (
           <div key={p.key} className={`bg-background p-5 flex flex-col ${span}`} data-testid={`order-pillar-${p.key}`}>
             <div className="flex items-baseline gap-3 mb-1">
@@ -117,44 +117,45 @@ export default function HouseholdOrder() {
               <h3 className="font-serif text-xl">{p.label}</h3>
             </div>
             <div className="text-xs text-muted-foreground mb-5">{p.hint}</div>
-            <ul className={`space-y-2 mb-4 flex-1 ${isLast ? "lg:grid lg:grid-cols-3 lg:gap-x-8 lg:space-y-0" : ""}`}>
-              {byPillar(p.key).map((r) => (
-                <li key={r.rule_id} className="border-b border-border pb-2 group" data-testid={`order-rule-${r.rule_id}`}>
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1">
-                      <div className="text-sm leading-snug">{r.title}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
-                        <span className="font-mono uppercase tracking-wider">{r.cadence}</span>
-                        {r.assigned_member_ids?.length > 0 && (
-                          <span className="flex items-center gap-1">
-                            {r.assigned_member_ids.map((mid) => {
-                              const m = members.find((x) => x.member_id === mid);
-                              if (!m) return null;
-                              return (
-                                <span key={mid} className={`w-4 h-4 flex items-center justify-center text-[8px] font-mono ${memberTileClass(m.color)}`} title={m.name}>
-                                  {initials(m.name)}
-                                </span>
-                              );
-                            })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <button onClick={() => remove(r.rule_id)} data-testid={`order-rule-delete-${r.rule_id}`} className="text-xs text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100">×</button>
-                  </div>
-                </li>
-              ))}
-              {byPillar(p.key).length === 0 && (
-                <li className="text-xs text-muted-foreground italic">No practices defined.</li>
-              )}
-            </ul>
-            <button
-              data-testid={`order-add-${p.key}-button`}
-              onClick={() => openDraft(p.key)}
-              className={`${isLast ? "lg:max-w-xs" : ""} w-full border border-dashed border-border py-2 text-xs text-muted-foreground hover:text-foreground hover:border-foreground`}
-            >
-              + Add practice
-            </button>
+            {isLast ? (
+              <div className="lg:grid lg:grid-cols-3 lg:gap-8 flex-1">
+                <ul className="space-y-2 mb-4 lg:mb-0 lg:col-span-2">
+                  {rules_p.map((r) => (
+                    <RuleLi key={r.rule_id} r={r} members={members} remove={remove} />
+                  ))}
+                  {rules_p.length === 0 && (
+                    <li className="text-xs text-muted-foreground italic">No practices defined.</li>
+                  )}
+                </ul>
+                <div className="flex flex-col justify-end">
+                  <button
+                    data-testid={`order-add-${p.key}-button`}
+                    onClick={() => openDraft(p.key)}
+                    className="w-full border border-dashed border-border py-2 text-xs text-muted-foreground hover:text-foreground hover:border-foreground"
+                  >
+                    + Add practice
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <ul className="space-y-2 mb-4 flex-1">
+                  {rules_p.map((r) => (
+                    <RuleLi key={r.rule_id} r={r} members={members} remove={remove} />
+                  ))}
+                  {rules_p.length === 0 && (
+                    <li className="text-xs text-muted-foreground italic">No practices defined.</li>
+                  )}
+                </ul>
+                <button
+                  data-testid={`order-add-${p.key}-button`}
+                  onClick={() => openDraft(p.key)}
+                  className="w-full border border-dashed border-border py-2 text-xs text-muted-foreground hover:text-foreground hover:border-foreground"
+                >
+                  + Add practice
+                </button>
+              </>
+            )}
           </div>
         );})}
       </div>
@@ -217,5 +218,34 @@ export default function HouseholdOrder() {
         </div>
       )}
     </div>
+  );
+}
+
+function RuleLi({ r, members, remove }) {
+  return (
+    <li className="border-b border-border pb-2 group" data-testid={`order-rule-${r.rule_id}`}>
+      <div className="flex items-start gap-2">
+        <div className="flex-1">
+          <div className="text-sm leading-snug">{r.title}</div>
+          <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
+            <span className="font-mono uppercase tracking-wider">{r.cadence}</span>
+            {r.assigned_member_ids?.length > 0 && (
+              <span className="flex items-center gap-1">
+                {r.assigned_member_ids.map((mid) => {
+                  const m = members.find((x) => x.member_id === mid);
+                  if (!m) return null;
+                  return (
+                    <span key={mid} className={`w-4 h-4 flex items-center justify-center text-[8px] font-mono ${memberTileClass(m.color)}`} title={m.name}>
+                      {initials(m.name)}
+                    </span>
+                  );
+                })}
+              </span>
+            )}
+          </div>
+        </div>
+        <button onClick={() => remove(r.rule_id)} data-testid={`order-rule-delete-${r.rule_id}`} className="text-xs text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100">×</button>
+      </div>
+    </li>
   );
 }
