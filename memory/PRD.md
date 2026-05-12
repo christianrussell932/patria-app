@@ -41,7 +41,14 @@ A structured operating system for intentional Catholic family life. Repositioned
 ### v0.3 — Refinement
 - Family Council module, Sacred Heart tab (optional), liturgical engine v2 (proper ferial naming, Traditional Roman overlay), Household Rhythms, Crest motif. 93/93 backend + 100% frontend
 
-### v0.4 — Cleanup & Coherence (current)
+### v0.5 — Technical correctness & modularization (Feb 12, 2026)
+- **Backend refactor:** `server.py` slimmed from ~1,650 LOC to ~60 LOC. All domains extracted into `/app/backend/routers/` (auth, household, liturgical, rules, prayer, challenges, budget, schedule, tasks, goals, dashboard, council, sacred_heart, rhythms) with shared `deps.py` for User/Household models + `get_current_user` / `get_household`.
+- **Council `finalize_meeting` is idempotent:** response now `{ok, already, tasks_created, tasks_existing}`. Re-finalize never double-creates tasks. Diffs by `assignment_id` OR title — robust against clients that drop `assignment_id` round-trip. Backfills `assignment_id` + `task_id` onto assignments after finalize so subsequent PATCHes stay coherent.
+- **`dateutil.relativedelta` for cadence math:** Rhythm next_due (daily/weekly/monthly/quarterly/yearly with end-of-month + leap-year clamping) and Sacred-Heart `next_renewal` (next anniversary ≥ today, Feb 29 clamps to Feb 28 in non-leap years).
+- **Traditional 1962 "Sundays after Epiphany" rubric:** First Sunday after Epiphany = Sunday in Jan 7–13. Displaced Sundays (when Lent starts early) are RESUMED in their original Epiphany numbering after the last regular Sunday after Pentecost, immediately before the Last Sunday. Fixed an upstream bug in `first_sunday_of_advent` that was returning Saturdays.
+- **Tests:** 143/143 backend green (119 local pytest + 24 public-URL E2E). New `test_patria_v5_correctness.py` covers all four fixes including Feb 29 anniversary, month-end clamping, the 1962 resumed Epiphany Sundays for 2026, and end-to-end council idempotency.
+
+### v0.4 — Cleanup & Coherence
 - **Landing:** removed "Eight Systems" numbering — replaced with *"An operating system for intentional Catholic family life."* and *"What lives inside"*. Ornate Patria mark now sits ceremonially in the hero.
 - **Onboarding & Settings:** added **Traditional Roman Calendar — 1962** as third option (Roman / Traditional / Byzantine). Ornate logo placed at top of onboarding wizard.
 - **Sidebar:** sticky on desktop. Text wordmark only inside the app — no repeated ornate logo embedding.
@@ -53,17 +60,16 @@ A structured operating system for intentional Catholic family life. Repositioned
 
 ## Backlog
 ### P0 (next session)
-- Split `server.py` (~1,650 lines) into per-domain routers (council, sacred_heart, rhythms, liturgical, budget, schedule, tasks, goals, dashboard, household)
-- Use `dateutil.relativedelta` for cadence-aware rhythm next-due and Sacred-Heart anniversary (handle Feb 29 fallback to Feb 28)
-- True "Sundays after Epiphany" counting in Traditional variant `_season_label`
-- Idempotent `finalize_meeting` (re-finalize should not double-create tasks)
+- *(All v0.4 P0 items completed in v0.5.)*
 
 ### P1
+- "Family Crest" symbolic visual identity layer (deferred per user request in v0.5)
 - AI module (Claude Sonnet 4.5): mission-statement coach, Council agenda enrichment, formation prompts
 - PWA push notifications for Angelus / Compline / Council day
 - Recurring events + chore rota
 - Weighted Household Health (cadence + assignment-aware)
 - Saint database with biographical pages
+- 1962 enhancements: Holy Family Sunday (Sunday after Epiphany within Octave); Octave of Epiphany commemorations; privileged-Sunday rubric so Last Sunday after Pentecost isn't displaced by lower-rank fixed feasts
 
 ### P2
 - "Liturgical Year Wrap" — printable annual report
