@@ -59,7 +59,7 @@ export default function Onboarding() {
             src="/patria-logo.png"
             alt="Patria"
             data-testid="onboarding-mark"
-            className="w-24 mb-3 mix-blend-multiply dark:mix-blend-screen dark:invert dark:opacity-90 select-none"
+            className="w-24 h-auto mb-3 select-none"
             draggable="false"
           />
           <div className="font-serif text-2xl">Patria<span className="text-liturgical-white">.</span></div>

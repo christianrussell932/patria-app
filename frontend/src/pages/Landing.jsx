@@ -55,7 +55,7 @@ export default function Landing() {
               src="/patria-logo.png"
               alt="Patria"
               data-testid="landing-mark"
-              className="w-full max-w-sm mix-blend-multiply dark:mix-blend-screen dark:invert dark:opacity-90 select-none"
+              className="w-full max-w-sm h-auto select-none"
               draggable="false"
             />
           </div>
