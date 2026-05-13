@@ -32,6 +32,14 @@ A structured operating system for intentional Catholic family life. Repositioned
 - **Family Council** → *How are we doing?* (weekly review)
 
 ## Implemented
+### v0.8 — App-wide frontend resilience (Feb 13, 2026)
+A defensive sweep eliminating the recurring "Uncaught Runtime Error" overlay that surfaced whenever a normal axios mutation rejected (404 / 400 / 500 / network drop).
+
+- **Shared formatter:** `frontend/src/lib/errors.js` exposes `explainError(err, fallback)` — pulls Pydantic `detail` strings/validation arrays, maps 401 → "Session expired", 403 → "no access", 404 → "endpoint not available", network → "check connection", everything else falls back to the page's own copy. Used app-wide.
+- **Pages hardened in this round (7):** `Council.jsx`, `MissionGoals.jsx`, `Dashboard.jsx`, `Household.jsx` (also dropped legacy `alert()` calls), `SacredHeart.jsx`, `Settings.jsx` (added `saving` disabled state), `Today.jsx`. Combined with the earlier `Schedule.jsx` / `HouseholdOrder.jsx` / `Budget.jsx` hardening, **every reachable axios mutation in the app is now wrapped in `try/catch` with a Sonner `toast.error(explainError(...))`**. Modals stay open on failure; inputs are preserved; submit buttons re-enable.
+- **Verification:** `testing_agent_v3_fork` iteration 7 — 100% PASS across 10 forced-error scenarios spanning all 7 pages. 0 webpack/React error overlays, 0 uncaught console rejections, readable toasts every time.
+- **Known dead code (flagged):** `pages/Today.jsx` is hardened but unreachable (`/today` redirects to `/dashboard` and the file has no importers). Kept as-is pending a product decision on whether to restore the "Today" route or delete the file.
+
 ### v0.1 — Domus (Jan 2026)
 - Foundation. 34/34 backend + 100% frontend e2e
 
