@@ -12,6 +12,7 @@ export default function Council() {
   const [meeting, setMeeting] = useState(null);
   const [members, setMembers] = useState([]);
   const [creating, setCreating] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
 
   // Local editable buffers
   const [notes, setNotes] = useState("");
@@ -102,14 +103,17 @@ export default function Council() {
   };
 
   const finalize = async () => {
-    if (!meeting) return;
+    if (!meeting || finalizing) return;
     if (!confirm("Finalize this council meeting? Assignments will become household tasks.")) return;
+    setFinalizing(true);
     try {
       await api.post(`/council/meeting/${meeting.meeting_id}/finalize`);
       toast.success("Meeting finalized.");
       refresh();
     } catch (err) {
       toast.error(explainError(err, "Could not finalize the meeting."));
+    } finally {
+      setFinalizing(false);
     }
   };
 
@@ -149,7 +153,9 @@ export default function Council() {
             <>
               <button onClick={() => window.print()} data-testid="council-print-button" className="border border-border text-sm px-4 py-2 hover:bg-secondary">Print one-page summary</button>
               {meeting.status === "draft" && (
-                <button onClick={finalize} data-testid="council-finalize-button" className="bg-primary text-primary-foreground text-sm px-4 py-2">Finalize meeting →</button>
+                <button onClick={finalize} disabled={finalizing} data-testid="council-finalize-button" className="bg-primary text-primary-foreground text-sm px-4 py-2 disabled:opacity-50">
+                  {finalizing ? "Finalizing…" : "Finalize meeting →"}
+                </button>
               )}
             </>
           ) : (

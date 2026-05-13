@@ -18,6 +18,8 @@ export default function MissionGoals() {
   // Goal modal
   const [showGoal, setShowGoal] = useState(false);
   const [goalDraft, setGoalDraft] = useState({ title: "", description: "", scope: "short", deadline: "", progress: 0 });
+  const [savingMission, setSavingMission] = useState(false);
+  const [savingGoal, setSavingGoal] = useState(false);
 
   const refresh = async () => {
     try {
@@ -39,6 +41,8 @@ export default function MissionGoals() {
   useEffect(() => { refresh(); }, []);
 
   const saveHousehold = async () => {
+    if (savingMission) return;
+    setSavingMission(true);
     try {
       await api.patch("/household", {
         mission_statement: mission,
@@ -50,6 +54,8 @@ export default function MissionGoals() {
       refresh();
     } catch (err) {
       toast.error(explainError(err, "Could not save the mission."));
+    } finally {
+      setSavingMission(false);
     }
   };
 
@@ -58,6 +64,8 @@ export default function MissionGoals() {
       toast.error("Title is required.");
       return;
     }
+    if (savingGoal) return;
+    setSavingGoal(true);
     try {
       await api.post("/goals", {
         ...goalDraft,
@@ -70,6 +78,8 @@ export default function MissionGoals() {
       refresh();
     } catch (err) {
       toast.error(explainError(err, "Could not add the goal."));
+    } finally {
+      setSavingGoal(false);
     }
   };
 
@@ -163,7 +173,7 @@ export default function MissionGoals() {
       </Panel>
 
       <div className="mt-6 flex justify-end">
-        <button onClick={saveHousehold} data-testid="mission-save-button" className="bg-primary text-primary-foreground px-5 py-2 text-sm">Save mission</button>
+        <button onClick={saveHousehold} disabled={savingMission} data-testid="mission-save-button" className="bg-primary text-primary-foreground px-5 py-2 text-sm disabled:opacity-50">{savingMission ? "Saving…" : "Save mission"}</button>
       </div>
 
       {/* Goals */}
@@ -197,7 +207,7 @@ export default function MissionGoals() {
             </div>
             <div className="flex justify-end gap-3 mt-6">
               <button onClick={() => setShowGoal(false)} className="text-sm text-muted-foreground" data-testid="mission-goal-cancel">Cancel</button>
-              <button onClick={addGoal} data-testid="mission-goal-submit" className="bg-primary text-primary-foreground px-4 py-2 text-sm">Add goal</button>
+              <button onClick={addGoal} disabled={savingGoal} data-testid="mission-goal-submit" className="bg-primary text-primary-foreground px-4 py-2 text-sm disabled:opacity-50">{savingGoal ? "Adding…" : "Add goal"}</button>
             </div>
           </div>
         </div>
