@@ -13,6 +13,10 @@ PILLARS = [
     "prayer", "fasting", "almsgiving", "work", "rest", "formation",
 ]
 
+# Allowed cadences for a household practice. MongoDB stores the value as a
+# free string, but we constrain it here so the API can't accumulate typos.
+CADENCES = ("daily", "weekly", "monthly")
+
 
 class RuleCreate(BaseModel):
     pillar: str
@@ -52,8 +56,8 @@ async def list_rules(h: Household = Depends(get_household)):
 async def create_rule(payload: RuleCreate, h: Household = Depends(get_household)):
     if payload.pillar not in PILLARS:
         raise HTTPException(status_code=400, detail=f"pillar must be one of {PILLARS}")
-    if payload.cadence not in ("daily", "weekly"):
-        raise HTTPException(status_code=400, detail="cadence must be daily or weekly")
+    if payload.cadence not in CADENCES:
+        raise HTTPException(status_code=400, detail=f"cadence must be one of {CADENCES}")
     rid = make_id("rule")
     await db.rules.insert_one({
         "rule_id": rid, "household_id": h.household_id, "pillar": payload.pillar,
@@ -67,6 +71,8 @@ async def create_rule(payload: RuleCreate, h: Household = Depends(get_household)
 @router.patch("/{rule_id}")
 async def update_rule(rule_id: str, payload: RuleUpdate, h: Household = Depends(get_household)):
     update = payload.model_dump(exclude_none=True)
+    if "cadence" in update and update["cadence"] not in CADENCES:
+        raise HTTPException(status_code=400, detail=f"cadence must be one of {CADENCES}")
     if update:
         await db.rules.update_one(
             {"rule_id": rule_id, "household_id": h.household_id}, {"$set": update}

@@ -108,8 +108,8 @@ export default function HouseholdOrder() {
       setDraftError("Please pick a household system.");
       return;
     }
-    if (!["daily", "weekly"].includes(draftCadence)) {
-      setDraftError("Cadence must be daily or weekly.");
+    if (!["daily", "weekly", "monthly"].includes(draftCadence)) {
+      setDraftError("Cadence must be daily, weekly, or monthly.");
       return;
     }
     setDraftError("");
@@ -244,7 +244,7 @@ export default function HouseholdOrder() {
               <div>
                 <div className="overline mb-2">Cadence</div>
                 <div className="flex gap-2">
-                  {["daily", "weekly"].map((c) => (
+                  {["daily", "weekly", "monthly"].map((c) => (
                     <button
                       key={c}
                       data-testid={`order-draft-cadence-${c}`}
