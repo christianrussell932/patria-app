@@ -21,24 +21,35 @@ function fmtTargetDate(iso) {
 
 export default function FinancialGoalsPanel({ goals, onChange }) {
   const [adding, setAdding] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const [draft, setDraft] = useState({
     name: "", goal_type: "savings", target_amount: "", current_amount: "0",
     target_date: "", monthly_contribution: "", color: "green",
   });
 
   const addGoal = async () => {
-    if (!draft.name.trim() || !draft.target_amount) return;
-    await onChange("create", {
-      name: draft.name,
+    if (!draft.name.trim()) { setError("Goal name is required."); return; }
+    const target = parseFloat(draft.target_amount);
+    if (!target || target <= 0) { setError("Target amount must be greater than zero."); return; }
+    setError("");
+    setSubmitting(true);
+    const ok = await onChange("create", {
+      name: draft.name.trim(),
       goal_type: draft.goal_type,
-      target_amount: parseFloat(draft.target_amount),
+      target_amount: target,
       current_amount: parseFloat(draft.current_amount) || 0,
       target_date: draft.target_date || null,
       monthly_contribution: draft.monthly_contribution ? parseFloat(draft.monthly_contribution) : null,
       color: draft.color,
     });
-    setDraft({ name: "", goal_type: "savings", target_amount: "", current_amount: "0", target_date: "", monthly_contribution: "", color: "green" });
-    setAdding(false);
+    setSubmitting(false);
+    if (ok) {
+      setDraft({ name: "", goal_type: "savings", target_amount: "", current_amount: "0", target_date: "", monthly_contribution: "", color: "green" });
+      setAdding(false);
+    } else {
+      setError("Save failed. Check the toast for details and try again.");
+    }
   };
 
   const updateCurrent = async (g, value) => {
@@ -221,9 +232,16 @@ export default function FinancialGoalsPanel({ goals, onChange }) {
             </div>
           </div>
           <div className="flex justify-end gap-3">
-            <button onClick={() => setAdding(false)} className="text-sm text-muted-foreground" data-testid="budget-fgoal-new-cancel">Cancel</button>
-            <button onClick={addGoal} className="bg-primary text-primary-foreground text-sm px-4 py-2" data-testid="budget-fgoal-new-submit">Set goal</button>
+            <button type="button" onClick={() => { if (!submitting) { setAdding(false); setError(""); } }} className="text-sm text-muted-foreground" data-testid="budget-fgoal-new-cancel">Cancel</button>
+            <button type="button" onClick={addGoal} disabled={submitting} className="bg-primary text-primary-foreground text-sm px-4 py-2 disabled:opacity-50" data-testid="budget-fgoal-new-submit">
+              {submitting ? "Saving…" : "Set goal"}
+            </button>
           </div>
+          {error && (
+            <div className="text-xs text-liturgical-red" data-testid="budget-fgoal-new-error">
+              {error}
+            </div>
+          )}
         </div>
       )}
     </Panel>

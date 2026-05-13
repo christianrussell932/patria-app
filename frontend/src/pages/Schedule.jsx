@@ -1,29 +1,12 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { explainError } from "@/lib/errors";
 import Panel from "@/components/Panel";
 import { initials, memberTileClass, formatCivilDate } from "@/lib/liturgical";
 
 const EVENT_TYPES = ["family", "liturgical", "date_night", "school", "medical", "other"];
 const TASK_CATEGORIES = ["general", "chore", "errand", "maintenance"];
-
-// Map common axios/server failures into a single readable message for toasts.
-function explainError(err, fallback = "Something went wrong.") {
-  // Validation surfaced from FastAPI / our HTTPException
-  const data = err?.response?.data;
-  if (data?.detail) {
-    if (typeof data.detail === "string") return data.detail;
-    if (Array.isArray(data.detail)) {
-      const m = data.detail[0];
-      const field = Array.isArray(m?.loc) ? m.loc[m.loc.length - 1] : "field";
-      return `${field}: ${m?.msg || "invalid value"}`;
-    }
-  }
-  if (err?.response?.status === 401) return "Session expired. Please sign in again.";
-  if (err?.response?.status === 403) return "You don't have access to this household.";
-  if (err?.message === "Network Error") return "Network error — check your connection.";
-  return fallback;
-}
 
 const EMPTY_EVENT = { title: "", event_date: "", event_time: "", type: "family", notes: "", member_ids: [] };
 const EMPTY_TASK  = { title: "", due_date: "", assigned_member_id: "", category: "general" };

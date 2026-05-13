@@ -17,21 +17,35 @@ const typeLabel = (k) => SOURCE_TYPES.find((s) => s.key === k)?.label || "Income
 export default function IncomePanel({ data, monthName, onChange }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ name: "", source_type: "paycheck", expected_amount: "", received_amount: "0", recurring: true });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const sources = data?.sources || [];
   const expected = data?.expected_total || 0;
   const received = data?.received_total || 0;
 
   const addSource = async () => {
-    if (!draft.name.trim()) return;
-    await onChange("create", {
-      name: draft.name,
+    if (!draft.name.trim()) {
+      setError("Source name is required.");
+      return;
+    }
+    setError("");
+    setSubmitting(true);
+    const ok = await onChange("create", {
+      name: draft.name.trim(),
       source_type: draft.source_type,
       expected_amount: parseFloat(draft.expected_amount) || 0,
       received_amount: parseFloat(draft.received_amount) || 0,
       recurring: draft.recurring,
     });
-    setDraft({ name: "", source_type: "paycheck", expected_amount: "", received_amount: "0", recurring: true });
-    setAdding(false);
+    setSubmitting(false);
+    if (ok) {
+      // Only reset and close the form on success — preserves user input on failure
+      // so they can retry without re-typing.
+      setDraft({ name: "", source_type: "paycheck", expected_amount: "", received_amount: "0", recurring: true });
+      setAdding(false);
+    } else {
+      setError("Save failed. Check the toast for details and try again.");
+    }
   };
 
   const updateField = async (source_id, field, value) => {
@@ -193,9 +207,16 @@ export default function IncomePanel({ data, monthName, onChange }) {
             <span>Recurring — auto-carry expected amount to future months</span>
           </label>
           <div className="flex justify-end gap-3">
-            <button onClick={() => setAdding(false)} className="text-sm text-muted-foreground" data-testid="budget-income-new-cancel">Cancel</button>
-            <button onClick={addSource} className="bg-primary text-primary-foreground text-sm px-4 py-2" data-testid="budget-income-new-submit">Add</button>
+            <button type="button" onClick={() => { if (!submitting) { setAdding(false); setError(""); } }} className="text-sm text-muted-foreground" data-testid="budget-income-new-cancel">Cancel</button>
+            <button type="button" onClick={addSource} disabled={submitting} className="bg-primary text-primary-foreground text-sm px-4 py-2 disabled:opacity-50" data-testid="budget-income-new-submit">
+              {submitting ? "Adding…" : "Add"}
+            </button>
           </div>
+          {error && (
+            <div className="text-xs text-liturgical-red" data-testid="budget-income-new-error">
+              {error}
+            </div>
+          )}
         </div>
       )}
     </Panel>
