@@ -19,19 +19,32 @@ import AppShell from "@/components/AppShell";
 
 function ProtectedRoute({ children, requireHousehold = true }) {
   const { user, loading } = useAuth();
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-muted-foreground">…</div>;
+  const location = useLocation();
+  // Per Emergent auth playbook: if user data was just passed in from
+  // AuthCallback via `navigate(..., { state: { user } })`, trust it
+  // immediately. This prevents the brief window where the AuthContext's
+  // setUser hasn't propagated yet and the route would otherwise see `null`
+  // and bounce to Landing — the exact race condition behind the redirect loop.
+  const stateUser = location.state?.user;
+  const effectiveUser = user || stateUser;
+  if (loading && !effectiveUser) {
+    return <div className="min-h-screen flex items-center justify-center text-muted-foreground" data-testid="auth-loading">…</div>;
   }
-  if (!user) return <Navigate to="/" replace />;
-  if (requireHousehold && !user.current_household_id) return <Navigate to="/onboarding" replace />;
+  if (!effectiveUser) return <Navigate to="/" replace />;
+  if (requireHousehold && !effectiveUser.current_household_id) return <Navigate to="/onboarding" replace />;
   return children;
 }
 
 function PublicOnly({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen" />;
-  if (user) {
-    if (!user.current_household_id) return <Navigate to="/onboarding" replace />;
+  const location = useLocation();
+  // Same safeguard for the Landing route — if the user data is travelling
+  // alongside the navigation, don't render Landing.
+  const stateUser = location.state?.user;
+  const effectiveUser = user || stateUser;
+  if (loading) return <div className="min-h-screen" data-testid="auth-loading-public" />;
+  if (effectiveUser) {
+    if (!effectiveUser.current_household_id) return <Navigate to="/onboarding" replace />;
     return <Navigate to="/dashboard" replace />;
   }
   return children;
