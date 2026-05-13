@@ -1,6 +1,27 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { initials, memberTileClass } from "@/lib/liturgical";
+
+// Match the helper used in Schedule.jsx — turns axios / FastAPI failures into
+// a single readable string for toasts so the user always sees WHY a save failed.
+function explainError(err, fallback = "Something went wrong.") {
+  const data = err?.response?.data;
+  if (data?.detail) {
+    if (typeof data.detail === "string") return data.detail;
+    if (Array.isArray(data.detail)) {
+      const m = data.detail[0];
+      const field = Array.isArray(m?.loc) ? m.loc[m.loc.length - 1] : "field";
+      return `${field}: ${m?.msg || "invalid value"}`;
+    }
+  }
+  const status = err?.response?.status;
+  if (status === 401) return "Session expired. Please sign in again.";
+  if (status === 403) return "You don't have access to this household.";
+  if (status === 404) return "That endpoint isn't available — try reloading the page.";
+  if (err?.message === "Network Error") return "Network error — check your connection.";
+  return fallback;
+}
 
 const PILLARS = [
   {
@@ -52,11 +73,18 @@ export default function HouseholdOrder() {
   const [draftTitle, setDraftTitle] = useState("");
   const [draftCadence, setDraftCadence] = useState("daily");
   const [draftAssigned, setDraftAssigned] = useState([]);
+  const [draftError, setDraftError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const refresh = async () => {
-    const [r, hm] = await Promise.all([api.get("/rules"), api.get("/household/me")]);
-    setRules(r.data.rules);
-    setMembers(hm.data.members);
+    try {
+      const [r, hm] = await Promise.all([api.get("/rules"), api.get("/household/me")]);
+      setRules(r.data.rules || []);
+      setMembers(hm.data.members || []);
+    } catch (err) {
+      console.error("HouseholdOrder refresh failed", err);
+      toast.error(explainError(err, "Could not load household practices."));
+    }
   };
 
   useEffect(() => { refresh(); }, []);
@@ -66,23 +94,59 @@ export default function HouseholdOrder() {
     setDraftTitle("");
     setDraftCadence("daily");
     setDraftAssigned([]);
+    setDraftError("");
   };
 
   const submit = async () => {
-    if (!draftTitle.trim() || !draftPillar) return;
-    await api.post("/rules", {
-      pillar: draftPillar,
-      title: draftTitle,
-      cadence: draftCadence,
-      assigned_member_ids: draftAssigned,
-    });
-    setDraftPillar(null);
-    refresh();
+    // Inline validation FIRST — never let an obviously bad payload reach the
+    // server. Set an inline error in the modal so the user sees what's wrong.
+    if (!draftTitle.trim()) {
+      setDraftError("Practice name is required.");
+      return;
+    }
+    if (!draftPillar) {
+      setDraftError("Please pick a household system.");
+      return;
+    }
+    if (!["daily", "weekly"].includes(draftCadence)) {
+      setDraftError("Cadence must be daily or weekly.");
+      return;
+    }
+    setDraftError("");
+    setSubmitting(true);
+    try {
+      await api.post("/rules", {
+        pillar: draftPillar,
+        title: draftTitle.trim(),
+        cadence: draftCadence,
+        assigned_member_ids: Array.isArray(draftAssigned) ? draftAssigned : [],
+      });
+      setDraftPillar(null);
+      toast.success("Practice added.");
+      await refresh();
+    } catch (err) {
+      console.error("Add practice failed", err);
+      // Modal stays open so the user can correct and retry — the original bug
+      // was that an unhandled axios rejection became React's "Uncaught Runtime
+      // Error" overlay and the modal closed on its own.
+      const msg = explainError(err, "Could not add the practice.");
+      setDraftError(msg);
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const remove = async (rule_id) => {
-    await api.delete(`/rules/${rule_id}`);
-    refresh();
+    if (!confirm("Remove this practice?")) return;
+    try {
+      await api.delete(`/rules/${rule_id}`);
+      toast.success("Practice removed.");
+      await refresh();
+    } catch (err) {
+      console.error("Remove practice failed", err);
+      toast.error(explainError(err, "Could not remove the practice."));
+    }
   };
 
   const byPillar = (key) => rules.filter((r) => {
@@ -212,8 +276,15 @@ export default function HouseholdOrder() {
             </div>
             <div className="flex justify-end gap-3 mt-8">
               <button onClick={() => setDraftPillar(null)} data-testid="order-draft-cancel" className="text-sm text-muted-foreground">Cancel</button>
-              <button onClick={submit} data-testid="order-draft-submit" className="bg-primary text-primary-foreground px-4 py-2 text-sm">Add practice</button>
+              <button onClick={submit} disabled={submitting} data-testid="order-draft-submit" className="bg-primary text-primary-foreground px-4 py-2 text-sm disabled:opacity-50">
+                {submitting ? "Adding…" : "Add practice"}
+              </button>
             </div>
+            {draftError && (
+              <div className="mt-4 text-xs text-liturgical-red" data-testid="order-draft-error">
+                {draftError}
+              </div>
+            )}
           </div>
         </div>
       )}
