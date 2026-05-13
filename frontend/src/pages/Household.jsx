@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { explainError } from "@/lib/errors";
 import { initials, memberTileClass } from "@/lib/liturgical";
 import Panel from "@/components/Panel";
 
@@ -13,22 +15,34 @@ export default function Members() {
   const [draft, setDraft] = useState({ name: "", role: "child", color: "green", patron_saint: "" });
 
   const refresh = async () => {
-    const [r, d] = await Promise.all([
-      api.get("/household/me"),
-      api.get("/dashboard"),
-    ]);
-    setHousehold(r.data.household);
-    setMembers(r.data.members);
-    setScore(d.data.weekly_score);
+    try {
+      const [r, d] = await Promise.all([
+        api.get("/household/me"),
+        api.get("/dashboard"),
+      ]);
+      setHousehold(r.data.household);
+      setMembers(r.data.members);
+      setScore(d.data.weekly_score);
+    } catch (err) {
+      toast.error(explainError(err, "Could not load household."));
+    }
   };
 
   useEffect(() => { refresh(); }, []);
 
   const add = async () => {
-    if (!draft.name.trim()) return;
-    await api.post("/household/members", draft);
-    setDraft({ name: "", role: "child", color: "green", patron_saint: "" });
-    refresh();
+    if (!draft.name.trim()) {
+      toast.error("Name is required.");
+      return;
+    }
+    try {
+      await api.post("/household/members", draft);
+      setDraft({ name: "", role: "child", color: "green", patron_saint: "" });
+      toast.success("Member added.");
+      refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not add the member."));
+    }
   };
 
   const remove = async (member_id) => {
@@ -36,8 +50,8 @@ export default function Members() {
     try {
       await api.delete(`/household/members/${member_id}`);
       refresh();
-    } catch (e) {
-      alert(e.response?.data?.detail || "Could not remove");
+    } catch (err) {
+      toast.error(explainError(err, "Could not remove the member."));
     }
   };
 

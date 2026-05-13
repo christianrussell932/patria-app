@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { explainError } from "@/lib/errors";
 import Panel from "@/components/Panel";
 import { SacredHeartEngraving, CrestDivider } from "@/components/Crest";
 
@@ -10,23 +12,41 @@ export default function SacredHeart() {
   const [draftDate, setDraftDate] = useState(new Date().toISOString().slice(0, 10));
 
   const refresh = async () => {
-    const r = await api.get("/sacred-heart/state");
-    setState(r.data);
-    setNotes(r.data.notes || "");
+    try {
+      const r = await api.get("/sacred-heart/state");
+      setState(r.data);
+      setNotes(r.data.notes || "");
+    } catch (err) {
+      toast.error(explainError(err, "Could not load Sacred Heart state."));
+    }
   };
 
   useEffect(() => { refresh(); }, []);
 
   const enthrone = async () => {
-    await api.post("/sacred-heart/enthrone", { enthroned_at: draftDate, notes });
-    setEnthroneOpen(false);
-    refresh();
+    if (!draftDate) {
+      toast.error("Pick a date for the enthronement.");
+      return;
+    }
+    try {
+      await api.post("/sacred-heart/enthrone", { enthroned_at: draftDate, notes });
+      setEnthroneOpen(false);
+      toast.success("Home consecrated to the Sacred Heart.");
+      refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not record the enthronement."));
+    }
   };
 
   const renew = async () => {
     if (!confirm("Mark today as the renewal of your consecration?")) return;
-    await api.post("/sacred-heart/renew");
-    refresh();
+    try {
+      await api.post("/sacred-heart/renew");
+      toast.success("Renewal recorded.");
+      refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not record the renewal."));
+    }
   };
 
   if (!state) return <div className="p-10 text-muted-foreground">Loading…</div>;

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { explainError } from "@/lib/errors";
 import Panel from "@/components/Panel";
 import { CrestDivider } from "@/components/Crest";
 import { initials, memberTileClass, formatCivilDate, liturgicalDot, liturgicalText } from "@/lib/liturgical";
@@ -20,19 +22,23 @@ export default function Council() {
   const [assignmentDraft, setAssignmentDraft] = useState({ title: "", member_id: "", due_date: "" });
 
   const refresh = async () => {
-    const [a, ms, hm] = await Promise.all([
-      api.get("/council/agenda"),
-      api.get("/council/meetings"),
-      api.get("/household/me"),
-    ]);
-    setAgenda(a.data);
-    setMeetings(ms.data.meetings);
-    setMembers(hm.data.members);
+    try {
+      const [a, ms, hm] = await Promise.all([
+        api.get("/council/agenda"),
+        api.get("/council/meetings"),
+        api.get("/household/me"),
+      ]);
+      setAgenda(a.data);
+      setMeetings(ms.data.meetings);
+      setMembers(hm.data.members);
 
-    // If there's a draft meeting for current week, open it
-    const draft = ms.data.meetings.find((m) => m.status === "draft" && m.week_start === a.data.week_start);
-    if (draft) loadMeeting(draft);
-    else setMeeting(null);
+      // If there's a draft meeting for current week, open it
+      const draft = ms.data.meetings.find((m) => m.status === "draft" && m.week_start === a.data.week_start);
+      if (draft) loadMeeting(draft);
+      else setMeeting(null);
+    } catch (err) {
+      toast.error(explainError(err, "Could not load the council agenda."));
+    }
   };
 
   const loadMeeting = (m) => {
@@ -53,6 +59,8 @@ export default function Council() {
       loadMeeting(m.data);
       const ms = await api.get("/council/meetings");
       setMeetings(ms.data.meetings);
+    } catch (err) {
+      toast.error(explainError(err, "Could not start the meeting."));
     } finally {
       setCreating(false);
     }
@@ -60,7 +68,11 @@ export default function Council() {
 
   const save = async (patch) => {
     if (!meeting) return;
-    await api.patch(`/council/meeting/${meeting.meeting_id}`, patch);
+    try {
+      await api.patch(`/council/meeting/${meeting.meeting_id}`, patch);
+    } catch (err) {
+      toast.error(explainError(err, "Could not save the meeting."));
+    }
   };
 
   const addPriority = () => {
@@ -92,8 +104,13 @@ export default function Council() {
   const finalize = async () => {
     if (!meeting) return;
     if (!confirm("Finalize this council meeting? Assignments will become household tasks.")) return;
-    await api.post(`/council/meeting/${meeting.meeting_id}/finalize`);
-    refresh();
+    try {
+      await api.post(`/council/meeting/${meeting.meeting_id}/finalize`);
+      toast.success("Meeting finalized.");
+      refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not finalize the meeting."));
+    }
   };
 
   if (!agenda) return <div className="p-10 text-muted-foreground">Preparing the agenda…</div>;

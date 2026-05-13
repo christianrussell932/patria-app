@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { explainError } from "@/lib/errors";
 import { liturgicalDot, liturgicalText, memberTileClass, initials, formatCivilDate, toRoman } from "@/lib/liturgical";
 
 const PRAYER_TYPES = [
@@ -24,25 +26,29 @@ export default function Today() {
   const today = new Date();
 
   const refresh = async () => {
-    const [l, hm, r, p, c, st] = await Promise.all([
-      api.get("/liturgical/today"),
-      api.get("/household/me"),
-      api.get("/rules"),
-      api.get("/prayer/log"),
-      api.get("/challenges/active"),
-      api.get("/prayer/stats"),
-    ]);
-    setLit(l.data);
-    setHousehold(hm.data.household);
-    setMembers(hm.data.members);
-    if (!activeMember && hm.data.members?.length) {
-      const me = hm.data.members.find((m) => m.linked_user_id) || hm.data.members[0];
-      setActiveMember(me.member_id);
+    try {
+      const [l, hm, r, p, c, st] = await Promise.all([
+        api.get("/liturgical/today"),
+        api.get("/household/me"),
+        api.get("/rules"),
+        api.get("/prayer/log"),
+        api.get("/challenges/active"),
+        api.get("/prayer/stats"),
+      ]);
+      setLit(l.data);
+      setHousehold(hm.data.household);
+      setMembers(hm.data.members);
+      if (!activeMember && hm.data.members?.length) {
+        const me = hm.data.members.find((m) => m.linked_user_id) || hm.data.members[0];
+        setActiveMember(me.member_id);
+      }
+      setRules(r.data.rules);
+      setPrayerLogs(p.data.logs);
+      setActiveChallenges(c.data.challenges);
+      setStats(st.data);
+    } catch (err) {
+      toast.error(explainError(err, "Could not load Today."));
     }
-    setRules(r.data.rules);
-    setPrayerLogs(p.data.logs);
-    setActiveChallenges(c.data.challenges);
-    setStats(st.data);
   };
 
   useEffect(() => {
@@ -54,21 +60,33 @@ export default function Today() {
   const toggleRule = async (rule) => {
     if (!activeMember) return;
     const completed = !rule.completed_today_member_ids?.includes(activeMember);
-    await api.post(`/rules/${rule.rule_id}/checkin`, { member_id: activeMember, completed });
-    refresh();
+    try {
+      await api.post(`/rules/${rule.rule_id}/checkin`, { member_id: activeMember, completed });
+      refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not update the rule check-in."));
+    }
   };
 
   const logPrayer = async (prayer_type) => {
     if (!activeMember) return;
-    await api.post("/prayer/log", { member_id: activeMember, prayer_type });
-    refresh();
+    try {
+      await api.post("/prayer/log", { member_id: activeMember, prayer_type });
+      refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not log the prayer."));
+    }
   };
 
   const checkinChallenge = async (ch) => {
     if (!activeMember) return;
     const done = ch.completed_today_member_ids?.includes(activeMember);
-    await api.post(`/challenges/${ch.challenge_id}/checkin`, { member_id: activeMember, completed: !done });
-    refresh();
+    try {
+      await api.post(`/challenges/${ch.challenge_id}/checkin`, { member_id: activeMember, completed: !done });
+      refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not check in for this season."));
+    }
   };
 
   if (!lit) {

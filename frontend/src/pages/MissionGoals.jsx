@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { explainError } from "@/lib/errors";
 import Panel from "@/components/Panel";
 
 export default function MissionGoals() {
@@ -18,51 +20,76 @@ export default function MissionGoals() {
   const [goalDraft, setGoalDraft] = useState({ title: "", description: "", scope: "short", deadline: "", progress: 0 });
 
   const refresh = async () => {
-    const [hm, g] = await Promise.all([api.get("/household/me"), api.get("/goals")]);
-    setHousehold(hm.data.household);
-    setMembers(hm.data.members);
-    setGoals(g.data.goals);
-    if (hm.data.household) {
-      setMission(hm.data.household.mission_statement || "");
-      setValuesText((hm.data.household.values || []).join(", "));
-      setTechPolicy(hm.data.household.technology_policy || "");
-      setRolesDraft(hm.data.household.roles || {});
+    try {
+      const [hm, g] = await Promise.all([api.get("/household/me"), api.get("/goals")]);
+      setHousehold(hm.data.household);
+      setMembers(hm.data.members);
+      setGoals(g.data.goals);
+      if (hm.data.household) {
+        setMission(hm.data.household.mission_statement || "");
+        setValuesText((hm.data.household.values || []).join(", "));
+        setTechPolicy(hm.data.household.technology_policy || "");
+        setRolesDraft(hm.data.household.roles || {});
+      }
+    } catch (err) {
+      toast.error(explainError(err, "Could not load mission & goals."));
     }
   };
 
   useEffect(() => { refresh(); }, []);
 
   const saveHousehold = async () => {
-    await api.patch("/household", {
-      mission_statement: mission,
-      values: valuesText.split(",").map((s) => s.trim()).filter(Boolean),
-      technology_policy: techPolicy,
-      roles: rolesDraft,
-    });
-    refresh();
+    try {
+      await api.patch("/household", {
+        mission_statement: mission,
+        values: valuesText.split(",").map((s) => s.trim()).filter(Boolean),
+        technology_policy: techPolicy,
+        roles: rolesDraft,
+      });
+      toast.success("Mission saved.");
+      refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not save the mission."));
+    }
   };
 
   const addGoal = async () => {
-    if (!goalDraft.title.trim()) return;
-    await api.post("/goals", {
-      ...goalDraft,
-      progress: parseInt(goalDraft.progress) || 0,
-      deadline: goalDraft.deadline || null,
-    });
-    setShowGoal(false);
-    setGoalDraft({ title: "", description: "", scope: "short", deadline: "", progress: 0 });
-    refresh();
+    if (!goalDraft.title.trim()) {
+      toast.error("Title is required.");
+      return;
+    }
+    try {
+      await api.post("/goals", {
+        ...goalDraft,
+        progress: parseInt(goalDraft.progress) || 0,
+        deadline: goalDraft.deadline || null,
+      });
+      setShowGoal(false);
+      setGoalDraft({ title: "", description: "", scope: "short", deadline: "", progress: 0 });
+      toast.success("Goal added.");
+      refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not add the goal."));
+    }
   };
 
   const updateProgress = async (gid, progress) => {
-    await api.patch(`/goals/${gid}`, { progress });
-    refresh();
+    try {
+      await api.patch(`/goals/${gid}`, { progress });
+      refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not update progress."));
+    }
   };
 
   const removeGoal = async (gid) => {
     if (!confirm("Remove this goal?")) return;
-    await api.delete(`/goals/${gid}`);
-    refresh();
+    try {
+      await api.delete(`/goals/${gid}`);
+      refresh();
+    } catch (err) {
+      toast.error(explainError(err, "Could not remove the goal."));
+    }
   };
 
   const shortGoals = goals.filter((g) => g.scope === "short");

@@ -1,0 +1,42 @@
+{
+  "summary": "Frontend-only verification of Axios mutation hardening across the 7 newly-hardened Patria pages (Council, MissionGoals, Dashboard, Household, SacredHeart, Settings, Today). Forced backend errors via Playwright page.route() for every required mutation; verified that NO React/Webpack error overlay appeared, NO 'Uncaught (in promise) AxiosError' was emitted to the console, and a readable Sonner toast was displayed. Modal/form state was preserved on failure and submit buttons were re-enabled. 0 uncaught promise rejections captured across all forced-error tests. Happy paths (Dashboard load, Council meeting start) still work normally.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "hardening_verification_matrix": {
+    "Dashboard.jsx GET /dashboard 500": {"overlay": false, "toast": "forced dashboard failure", "uncaught": 0, "status": "PASS"},
+    "MissionGoals.jsx PATCH /household 400": {"overlay": false, "toast": "Mission cannot be empty", "btn_re_enabled": true, "status": "PASS"},
+    "MissionGoals.jsx POST /goals 500": {"overlay": false, "toast": "forced goal failure", "modal_stays_open": true, "input_preserved": true, "status": "PASS"},
+    "Council.jsx POST /council/meeting 500": {"overlay": false, "toast": "forced council meeting failure", "status": "PASS"},
+    "Council.jsx PATCH /council/meeting/:id 500 (priority autosave)": {"overlay": false, "toast": "forced council save", "status": "PASS"},
+    "Council.jsx POST /council/meeting/:id/finalize 500": {"overlay": false, "toast": "forced finalize", "status": "PASS"},
+    "Household.jsx POST /household/members 500": {"overlay": false, "toast": "forced add member failure", "input_preserved": true, "status": "PASS"},
+    "Household.jsx DELETE primary parent 400 (forced)": {"overlay": false, "toast": "Cannot remove the primary parent.", "status": "PASS"},
+    "SacredHeart.jsx POST /sacred-heart/enthrone 500": {"overlay": false, "toast": "forced enthrone failure", "modal_stays_open": true, "status": "PASS"},
+    "Settings.jsx PATCH /household 500": {"overlay": false, "toast": "forced settings save failure", "btn_re_enabled": true, "status": "PASS"},
+    "Today.jsx mutations": {"status": "CODE_REVIEW_PASS_BUT_UNREACHABLE", "reason": "All three mutations (toggleRule, logPrayer, checkinChallenge) are wrapped in try/catch with toast.error(explainError(...)). However /today route in App.js redirects to /dashboard and Today.jsx is NOT imported anywhere in /app/frontend/src — the hardened module is dead code in the live app."}
+  },
+  "test_report_links": [],
+  "critical_code_review_comments": [
+    "Today.jsx is hardened but unreachable: App.js redirects `/today` -> `/dashboard` and Today.jsx is not imported in any other file (grep across src/ returns no importers). The page-level hardening is correct (try/catch + toast.error(explainError)), but no user can ever exercise this code path. Recommend either (a) wiring Today.jsx into a real route, or (b) deleting the file to avoid confusion.",
+    "Council.jsx, MissionGoals.jsx, Household.jsx, SacredHeart.jsx, Settings.jsx, Dashboard.jsx all correctly follow the established pattern: import { toast } from 'sonner'; import { explainError } from '@/lib/errors'; every mutation wrapped in try/catch that calls toast.error(explainError(err, fallback)). explainError handles 401/403/404/Network gracefully and pulls server `detail` strings or Pydantic validation arrays.",
+    "Minor: Settings.jsx save button uses a `saving` flag for disable+text, but MissionGoals.jsx `Save mission` and Council finalize buttons are not disabled during the in-flight request — a fast double-click could fire two PATCH/POST calls. Not a regression for this hardening sweep, but worth tightening later.",
+    "Seed-data side-effect during testing: the first Household remove-button click in iteration 1 hit a non-primary member, which the backend accepted (200), reducing the Aquinas demo household from 3 -> 2 members. The hardening behavior was still verified correctly via a separate forced-400 in iteration 2. Recommend reseeding the third member if visual demo richness matters."
+  ],
+  "action_items": [
+    "Decide fate of Today.jsx: either add a `<Route path=\"/today\" element={<Today />} />` (and remove the existing redirect to /dashboard), or delete src/pages/Today.jsx and its hardening work. Currently it's dead code.",
+    "(Optional) Reseed the third Aquinas household member that was inadvertently removed during DELETE testing on /members.",
+    "(Optional polish) Add `saving` disabled flag to MissionGoals `Save mission`, Council `Finalize meeting`, and Council `Begin meeting` buttons for parity with Settings.jsx (the only page in this sweep that already does it)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "skipped", "frontend": "100% (7/7 pages — Today.jsx code is correct but unreachable, flagged as action item)"},
+  "test_credentials": "session_token=demo_session_patria (cookie auth) — used as documented in /app/memory/test_credentials.md",
+  "seed_data_creation": "None. Note: One non-primary household member was unintentionally deleted during the first DELETE forced-error test (the real backend accepted the deletion because that particular row was not the primary parent). Aquinas household now shows 2 members instead of 3.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 7 hardened pages confirmed to surface axios errors via Sonner toasts with NO React/webpack error overlay and 0 uncaught promise rejections in console. Pattern: page.route('**/api/<endpoint>', fulfill 4xx/5xx) then trigger the mutation, then assert (a) no iframe[id^=webpack-dev-server], (b) no .react-error-overlay, (c) a [data-sonner-toast] is visible with human-readable text. SacredHeart.jsx lives at /spiritual?tab=sacred-heart (NOT a top-level route). Household.jsx is mounted as `Members` at /members. Today.jsx is currently dead code — /today redirects to /dashboard.",
+  "rca of the issue": "N/A — verification task, no bugs found in the hardening sweep itself. Only finding is the architectural gap that Today.jsx hardening is unreachable in the running app."
+}

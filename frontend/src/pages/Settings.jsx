@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { explainError } from "@/lib/errors";
 import { useAuth } from "@/lib/auth";
 
 export default function Settings() {
@@ -9,16 +11,19 @@ export default function Settings() {
   const [saint, setSaint] = useState("");
   const [variant, setVariant] = useState("roman");
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api.get("/household/me").then((r) => {
-      setHousehold(r.data.household);
-      if (r.data.household) {
-        setName(r.data.household.name || "");
-        setSaint(r.data.household.patron_saint || "");
-        setVariant(r.data.household.calendar_variant || "roman");
-      }
-    });
+    api.get("/household/me")
+      .then((r) => {
+        setHousehold(r.data.household);
+        if (r.data.household) {
+          setName(r.data.household.name || "");
+          setSaint(r.data.household.patron_saint || "");
+          setVariant(r.data.household.calendar_variant || "roman");
+        }
+      })
+      .catch((err) => toast.error(explainError(err, "Could not load settings.")));
   }, []);
 
   useEffect(() => {
@@ -28,8 +33,15 @@ export default function Settings() {
   }, [theme]);
 
   const save = async () => {
-    await api.patch("/household", { name, patron_saint: saint, calendar_variant: variant });
-    alert("Saved.");
+    setSaving(true);
+    try {
+      await api.patch("/household", { name, patron_saint: saint, calendar_variant: variant });
+      toast.success("Settings saved.");
+    } catch (err) {
+      toast.error(explainError(err, "Could not save settings."));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -66,7 +78,7 @@ export default function Settings() {
             ))}
           </div>
         </div>
-        <button onClick={save} data-testid="settings-save-button" className="bg-primary text-primary-foreground px-5 py-2 text-sm">Save</button>
+        <button onClick={save} disabled={saving} data-testid="settings-save-button" className="bg-primary text-primary-foreground px-5 py-2 text-sm disabled:opacity-50">{saving ? "Saving…" : "Save"}</button>
       </section>
 
       <section className="space-y-4 mb-12">

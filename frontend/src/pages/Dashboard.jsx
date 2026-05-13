@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { explainError } from "@/lib/errors";
 import { liturgicalDot, liturgicalText, formatCivilDate, initials, memberTileClass } from "@/lib/liturgical";
 import Panel from "@/components/Panel";
 import { CrestDivider } from "@/components/Crest";
@@ -12,7 +14,9 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    api.get("/dashboard").then((r) => setData(r.data));
+    api.get("/dashboard")
+      .then((r) => setData(r.data))
+      .catch((err) => toast.error(explainError(err, "Could not load the dashboard.")));
   }, []);
 
   if (!data) return <div className="p-10 text-muted-foreground">Loading…</div>;
