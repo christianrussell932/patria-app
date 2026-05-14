@@ -104,7 +104,6 @@ async def dashboard(h: Household = Depends(get_household)):
     goals = await db.family_goals.find(
         {"household_id": h.household_id, "completed": False}, {"_id": 0}
     ).sort("created_at", -1).to_list(20)
-    avg_progress = round(sum(g.get("progress", 0) for g in goals) / len(goals), 0) if goals else 0
 
     return {
         "household": house_doc,
@@ -128,6 +127,6 @@ async def dashboard(h: Household = Depends(get_household)):
         },
         "active_challenge": active_ch,
         "goals": {
-            "items": goals[:3], "avg_progress": avg_progress, "open_count": len(goals),
+            "items": goals[:3], "open_count": len(goals),
         },
     }

@@ -245,10 +245,6 @@ export default function Dashboard() {
           label="Family goals"
           action={<Link to="/mission" className="text-xs text-muted-foreground hover:text-foreground" data-testid="dashboard-goals-link">Open →</Link>}
         >
-          <div className="flex items-baseline gap-3 mb-3">
-            <span className="font-serif text-5xl tracking-tighter">{goals.avg_progress}%</span>
-            <span className="font-mono text-xs text-muted-foreground">avg progress</span>
-          </div>
           {goals.items.length > 0 ? (
             <ul className="space-y-2">
               {goals.items.map((g) => (

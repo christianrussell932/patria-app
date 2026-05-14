@@ -32,6 +32,14 @@ A structured operating system for intentional Catholic family life. Repositioned
 - **Family Council** → *How are we doing?* (weekly review)
 
 ## Implemented
+### v0.10 — Removed the Family Goals avg-progress aggregate (Feb 13, 2026)
+A second pass in the non-scorekeeping direction set by v0.9.
+
+- **Removed:** the `goals.avg_progress` field from `/api/dashboard` and its underlying `round(sum(g.progress)/len(goals))` computation in `routers/dashboard.py`. Same anti-pattern as the Household Health Score: averaging heterogeneous family goods (auto loan payoff, catechism reading, moving house) into one synthetic mean that answered no real decision.
+- **Removed (UI):** the `XX% avg progress` 5xl headline block at the top of the Dashboard's Family Goals panel. The individual goals list (each with its own bar) now leads the panel naturally — no replacement number, no replacement card. The panel breathes.
+- **Tests:** `test_dashboard_shape` now asserts `"avg_progress" not in d["goals"]`. **167/167 backend tests green.**
+- **Philosophy:** numeric displays in Patria are kept where they aid a real family decision (budget allocations, financial goals, tithing, liturgical Day-X-of-Y) and removed where they aggregate disparate goods into a synthetic KPI.
+
 ### v0.9 — Removed the Household Health composite score (Feb 13, 2026)
 Patria does not grade the family. Weekly reflection belongs to the Family Council.
 

@@ -416,6 +416,9 @@ class TestDashboard:
             assert k in d["budget"]
         # goals
         assert "items" in d["goals"]
+        # Family Goals aggregate average-progress KPI was removed in v0.10 — Patria does not
+        # average heterogeneous family goods into a single synthetic number.
+        assert "avg_progress" not in d["goals"], "goals.avg_progress must not be present"
 
     def test_dashboard_demo_has_data(self, demo_client):
         d = demo_client.get(f"{API}/dashboard").json()
