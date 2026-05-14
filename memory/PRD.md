@@ -32,6 +32,15 @@ A structured operating system for intentional Catholic family life. Repositioned
 - **Family Council** → *How are we doing?* (weekly review)
 
 ## Implemented
+### v0.9 — Removed the Household Health composite score (Feb 13, 2026)
+Patria does not grade the family. Weekly reflection belongs to the Family Council.
+
+- **Removed:** the `weekly_score` API key on `/api/dashboard` and its underlying 4-pct computation (rule/prayer/tasks/budget). Nothing was persisted; the calculation was purely derived. No collection or migration touched.
+- **Removed (UI):** Dashboard's `Household Health` Panel + `Household health` Snapshot tile + the local `ScoreBar` component. Members page's `Household health` Panel + its local `Row` helper + the parallel `/api/dashboard` fetch that only existed to populate the score.
+- **Layout (Option α):** promoted the existing `This week's council` panel up into the freed top-right `lg:col-span-5` slot. Active-season panel returns to full width when present. Members page's mission panel now spans full width.
+- **Copy:** Landing's Members description now reads *"household identity"* instead of *"household health"*.
+- **Tests:** `test_dashboard_shape` updated — the `weekly_score` presence assertion is replaced by an explicit `assert "weekly_score" not in d` so the removed contract stays removed.
+
 ### v0.8 — App-wide frontend resilience (Feb 13, 2026)
 A defensive sweep eliminating the recurring "Uncaught Runtime Error" overlay that surfaced whenever a normal axios mutation rejected (404 / 400 / 500 / network drop).
 
@@ -102,7 +111,6 @@ A round focused on making the Budget module *genuinely usable* for monthly house
 - AI module (Claude Sonnet 4.5): mission-statement coach, Council agenda enrichment, formation prompts
 - PWA push notifications for Angelus / Compline / Council day
 - Recurring events + chore rota
-- Weighted Household Health (cadence + assignment-aware)
 - Saint database with biographical pages
 - 1962 enhancements: Holy Family Sunday (Sunday after Epiphany within Octave); Octave of Epiphany commemorations; privileged-Sunday rubric so Last Sunday after Pentecost isn't displaced by lower-rank fixed feasts
 

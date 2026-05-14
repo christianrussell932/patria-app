@@ -106,18 +106,6 @@ async def dashboard(h: Household = Depends(get_household)):
     ).sort("created_at", -1).to_list(20)
     avg_progress = round(sum(g.get("progress", 0) for g in goals) / len(goals), 0) if goals else 0
 
-    # Household weekly score (composite)
-    rules = await db.rules.find({"household_id": h.household_id}, {"_id": 0}).to_list(500)
-    rule_checkins_week = await db.rule_checkins.count_documents(
-        {"household_id": h.household_id, "checkin_date": {"$gte": week_start_str}}
-    )
-    expected_rule_checkins = max(1, len(rules) * max(1, len(members)) * 7)
-    rule_pct = min(100, round((rule_checkins_week / expected_rule_checkins) * 100))
-    prayer_pct = min(100, round((week_prayer_count / max(1, len(members) * 7)) * 100))
-    task_pct = 100 if not tasks_overdue else max(0, 100 - len(tasks_overdue) * 10)
-    budget_pct = 100 if not over_cats else max(0, 100 - len(over_cats) * 15)
-    weekly_score = round((rule_pct + prayer_pct + task_pct + budget_pct) / 4)
-
     return {
         "household": house_doc,
         "members_count": len(members),
@@ -141,9 +129,5 @@ async def dashboard(h: Household = Depends(get_household)):
         "active_challenge": active_ch,
         "goals": {
             "items": goals[:3], "avg_progress": avg_progress, "open_count": len(goals),
-        },
-        "weekly_score": {
-            "total": weekly_score, "rule_pct": rule_pct, "prayer_pct": prayer_pct,
-            "tasks_pct": task_pct, "budget_pct": budget_pct,
         },
     }

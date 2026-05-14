@@ -11,18 +11,13 @@ const COLORS = ["violet", "green", "white", "red", "rose", "slate"];
 export default function Members() {
   const [household, setHousehold] = useState(null);
   const [members, setMembers] = useState([]);
-  const [score, setScore] = useState(null);
   const [draft, setDraft] = useState({ name: "", role: "child", color: "green", patron_saint: "" });
 
   const refresh = async () => {
     try {
-      const [r, d] = await Promise.all([
-        api.get("/household/me"),
-        api.get("/dashboard"),
-      ]);
+      const r = await api.get("/household/me");
       setHousehold(r.data.household);
       setMembers(r.data.members);
-      setScore(d.data.weekly_score);
     } catch (err) {
       toast.error(explainError(err, "Could not load household."));
     }
@@ -68,11 +63,10 @@ export default function Members() {
         )}
       </header>
 
-      {/* Mission preview + score */}
-      <div className="grid lg:grid-cols-12 gap-6 mb-10">
+      {/* Mission identity — full width now that the score panel is gone */}
+      <div className="mb-10">
         <Panel
           testId="members-mission-panel"
-          className="lg:col-span-8"
           label="Mission"
           action={<Link to="/mission" className="text-xs text-muted-foreground hover:text-foreground" data-testid="members-mission-edit-link">Edit →</Link>}
         >
@@ -91,17 +85,6 @@ export default function Members() {
               ))}
             </div>
           )}
-        </Panel>
-
-        <Panel testId="members-health-panel" className="lg:col-span-4" label="Household health" hint="Composite this-week score">
-          <div className="font-serif text-6xl tracking-tighter mb-2">{score?.total ?? 0}</div>
-          <div className="font-mono text-xs text-muted-foreground mb-5">/ 100</div>
-          <div className="space-y-2 text-xs">
-            <Row label="Rule of Life" pct={score?.rule_pct ?? 0} />
-            <Row label="Prayer" pct={score?.prayer_pct ?? 0} />
-            <Row label="Tasks" pct={score?.tasks_pct ?? 0} />
-            <Row label="Budget" pct={score?.budget_pct ?? 0} />
-          </div>
         </Panel>
       </div>
 
@@ -186,19 +169,5 @@ function MemberRow({ m, household, onRemove }) {
         <button onClick={() => onRemove(m.member_id)} data-testid={`members-remove-${m.member_id}`} className="text-xs text-muted-foreground hover:text-destructive">Remove</button>
       )}
     </li>
-  );
-}
-
-function Row({ label, pct }) {
-  return (
-    <div>
-      <div className="flex justify-between text-xs mb-1">
-        <span>{label}</span>
-        <span className="font-mono text-muted-foreground">{pct}%</span>
-      </div>
-      <div className="h-px bg-border relative">
-        <div className="absolute left-0 top-0 h-px bg-foreground" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
   );
 }

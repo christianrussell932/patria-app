@@ -21,7 +21,7 @@ export default function Dashboard() {
 
   if (!data) return <div className="p-10 text-muted-foreground">Loading…</div>;
 
-  const { liturgical: lit, household, weekly_score, todays_events, upcoming_events,
+  const { liturgical: lit, household, todays_events, upcoming_events,
     date_night, tasks, prayer, budget, active_challenge, goals } = data;
   const today = new Date();
 
@@ -63,7 +63,6 @@ export default function Dashboard() {
           </div>
 
           <div className="flex flex-wrap items-end gap-x-10 gap-y-3">
-            <Snapshot value={weekly_score?.total ?? 0} suffix="" label="Household health" />
             <Snapshot value={prayer.streak_days} label="Prayer streak" />
             <Snapshot value={tasks.open_count} label="Open tasks" />
             <Snapshot value={data.members_count} label="Members" />
@@ -134,16 +133,20 @@ export default function Dashboard() {
           )}
         </Panel>
 
-        {/* Weekly score */}
-        <Panel testId="dashboard-score-panel" className="lg:col-span-5" label="Household Health" hint="Diagnostic across rule, prayer, tasks, and budget — last 7 days">
-          <div className="font-serif text-7xl tracking-tighter leading-none mb-2">{weekly_score.total}</div>
-          <div className="font-mono text-xs text-muted-foreground mb-6">/ 100 · reflective, not a trophy</div>
-          <div className="space-y-3">
-            <ScoreBar label="Rule of Life" pct={weekly_score.rule_pct} color="green" />
-            <ScoreBar label="Prayer" pct={weekly_score.prayer_pct} color="violet" />
-            <ScoreBar label="Tasks" pct={weekly_score.tasks_pct} color="white" />
-            <ScoreBar label="Budget" pct={weekly_score.budget_pct} color="rose" />
-          </div>
+        {/* This week's Council — promoted to top-right, where the score used to live */}
+        <Panel
+          testId="dashboard-council-panel"
+          className="lg:col-span-5"
+          label="This week's council"
+          action={<Link to="/council" className="text-xs text-muted-foreground hover:text-foreground" data-testid="dashboard-council-link">Open →</Link>}
+        >
+          <p className="font-serif text-lg leading-snug mb-2">
+            Twenty quiet minutes, once a week.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Patria has composed an agenda from the last seven days. Open it together when the
+            household is gathered.
+          </p>
         </Panel>
 
         {/* Tasks due */}
@@ -265,11 +268,11 @@ export default function Dashboard() {
           )}
         </Panel>
 
-        {/* Active season — full width if present */}
+        {/* Active season — full width if present (Council CTA now lives in the top-right slot) */}
         {active_challenge && (
           <Panel
             testId="dashboard-challenge-panel"
-            className="lg:col-span-7"
+            className="lg:col-span-12"
             label="Active season"
           >
             <div className="flex items-start gap-4">
@@ -286,22 +289,6 @@ export default function Dashboard() {
             </div>
           </Panel>
         )}
-
-        {/* Family Council CTA */}
-        <Panel
-          testId="dashboard-council-panel"
-          className={active_challenge ? "lg:col-span-5" : "lg:col-span-12"}
-          label="This week's council"
-          action={<Link to="/council" className="text-xs text-muted-foreground hover:text-foreground" data-testid="dashboard-council-link">Open →</Link>}
-        >
-          <p className="font-serif text-lg leading-snug mb-2">
-            Twenty quiet minutes, once a week.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Patria has composed an agenda from the last seven days. Open it together when the
-            household is gathered.
-          </p>
-        </Panel>
       </div>
     </div>
   );
@@ -312,21 +299,6 @@ function Snapshot({ value, label, suffix = "" }) {
     <div data-testid={`snapshot-${label.toLowerCase().replace(/\s+/g, '-')}`}>
       <div className="font-serif text-3xl md:text-4xl tracking-tighter leading-none">{value}{suffix}</div>
       <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mt-1">{label}</div>
-    </div>
-  );
-}
-
-function ScoreBar({ label, pct, color = "green" }) {
-  const c = `bg-liturgical-${color}`;
-  return (
-    <div>
-      <div className="flex justify-between text-xs mb-1">
-        <span>{label}</span>
-        <span className="font-mono text-muted-foreground">{pct}%</span>
-      </div>
-      <div className="h-px bg-border relative">
-        <div className={`absolute left-0 top-0 h-px ${c}`} style={{ width: `${pct}%` }} />
-      </div>
     </div>
   );
 }

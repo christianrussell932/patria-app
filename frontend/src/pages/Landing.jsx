@@ -100,7 +100,7 @@ export default function Landing() {
               { title: "Budget & Stewardship", body: "Tithing, monthly categories, savings goals, debt reduction. Calm and premium — not Mint, not YNAB, not corporate fintech." },
               { title: "Mission & Goals", body: "A family mission statement, a list of values, a technology policy, short- and long-term goals tracked together." },
               { title: "Schedule", body: "Events, tasks and recurring household rhythms — date night, monthly confession, quarterly retreat. The execution layer of the home." },
-              { title: "Members", body: "The relational center. Mission, household health, parents, children, roles. Who walks with us." },
+              { title: "Members", body: "The relational center. Mission, household identity, parents, children, roles. Who walks with us." },
             ].map((m) => (
               <div key={m.title} className="bg-background p-8 md:p-10">
                 <h3 className="font-serif text-2xl mt-2 mb-3">{m.title}</h3>

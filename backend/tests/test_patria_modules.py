@@ -397,8 +397,11 @@ class TestDashboard:
         # Top-level
         for k in ("household", "liturgical", "today", "todays_events", "upcoming_events",
                   "date_night", "tasks", "prayer", "budget", "active_challenge",
-                  "goals", "weekly_score", "members_count"):
+                  "goals", "members_count"):
             assert k in d, f"missing key {k}"
+        # Household Health score was removed in v0.9 — Patria does not grade the family.
+        # Weekly reflection now belongs to the Family Council module.
+        assert "weekly_score" not in d, "weekly_score must not be present in dashboard response"
         # liturgical
         for k in ("date", "name", "color", "rank", "season"):
             assert k in d["liturgical"]
@@ -411,10 +414,6 @@ class TestDashboard:
         # budget
         for k in ("income", "expense", "giving", "tithe_pct", "over_categories", "net"):
             assert k in d["budget"]
-        # weekly_score
-        for k in ("rule_pct", "prayer_pct", "tasks_pct", "budget_pct", "total"):
-            assert k in d["weekly_score"]
-            assert 0 <= d["weekly_score"][k] <= 100
         # goals
         assert "items" in d["goals"]
 
