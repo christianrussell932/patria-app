@@ -250,6 +250,24 @@ class TestPrayer:
         ids = [x["log_id"] for x in r2.json()["logs"]]
         assert lid not in ids
 
+    def test_log_prayer_household_level_no_member(self, auth_client):
+        # v0.11 — member_id is optional. Household-level prayer rhythms are
+        # logged without a member, because the rhythm belongs to the house, not
+        # to any individual person.
+        r = auth_client.post(f"{API}/prayer/log", json={
+            "prayer_type": "angelus",
+        })
+        assert r.status_code == 200, r.text
+        lid = r.json()["log_id"]
+        assert lid.startswith("plog_")
+        # And the log appears for today with member_id == None
+        d = auth_client.get(f"{API}/prayer/log").json()
+        log = next(x for x in d["logs"] if x["log_id"] == lid)
+        assert log["prayer_type"] == "angelus"
+        assert log.get("member_id") is None
+        # Cleanup
+        auth_client.delete(f"{API}/prayer/log/{lid}")
+
 
 # ---------------- Challenges ----------------
 EXPECTED_TEMPLATES = {

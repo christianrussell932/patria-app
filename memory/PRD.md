@@ -32,6 +32,17 @@ A structured operating system for intentional Catholic family life. Repositioned
 - **Family Council** → *How are we doing?* (weekly review)
 
 ## Implemented
+### v0.11 — Household-level prayer rhythm (Feb 13, 2026)
+Spiritual Life pivoted away from per-member prayer tracking toward household-level prayer rhythm visibility. Patria should not feel like a spiritual-compliance dashboard.
+
+- **Removed (UI):** the member × prayer-type matrix from `pages/PrayerTracker.jsx`. The "+1 per member per prayer" interaction no longer exists. No leaderboard, no per-person counts, no individual member tiles.
+- **New UX:** a calm household rhythm list — each of six prayer practices (Morning Offering, Angelus, Family Rosary, Divine Mercy, Examen, Lectio Divina) is one row with a single household-level "lived ✓" toggle. Each rhythm carries a one-line gloss describing the practice. Above the list, a 7-day household aggregate shows how often each rhythm was kept. Below, a quiet italic line: *"A rhythm is not measured by who in the family said which prayer. It is measured by whether, together, the household kept its hour with God."*
+- **Backend:** `PrayerLogCreate.member_id` relaxed from required → `Optional[str] = None`. Household-level logs omit `member_id`; legacy per-member logs remain valid and continue to count toward household activity. No schema migration; the field's presence is now informational only.
+- **Other surfaces preserved without change:** Dashboard prayer panel, Dashboard snapshot, and Family Council "Last week in review · Prayers logged" all already counted prayer_logs at the household level (no member filter) and continue to work correctly. The Council label *"Prayers logged"* remains factually accurate and is flagged for a future copy refinement → *"Times the household prayed together"*.
+- **Demo seed:** 24 legacy demo prayer_logs (each with a `member_id`) remain in place — they're valid records under the new model and continue to populate the 7-day aggregate. No migration needed.
+- **Tests:** new `test_log_prayer_household_level_no_member` confirms POSTing without `member_id` succeeds and stores `member_id: null`. The legacy test still passes since Optional ≠ removed. **168/168 backend tests green.**
+- **Note for future work:** the prayer "streak" language on the Dashboard remains scheduled for a separate, deliberate copy-led softening pass. This change does not touch it.
+
 ### v0.10 — Removed the Family Goals avg-progress aggregate (Feb 13, 2026)
 A second pass in the non-scorekeeping direction set by v0.9.
 

@@ -10,7 +10,10 @@ router = APIRouter(prefix="/prayer", tags=["prayer"])
 
 
 class PrayerLogCreate(BaseModel):
-    member_id: str
+    # member_id was required when prayer was tracked per-person.
+    # As of v0.11 prayer is logged at the household level: member_id is optional and
+    # accepted only for backwards compatibility with any older client. New logs omit it.
+    member_id: Optional[str] = None
     prayer_type: str
     detail: Optional[str] = None
     log_date: Optional[str] = None
