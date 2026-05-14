@@ -32,6 +32,19 @@ A structured operating system for intentional Catholic family life. Repositioned
 - **Family Council** → *How are we doing?* (weekly review)
 
 ## Implemented
+### v0.12 — Removed "prayer streak" framing (Feb 13, 2026)
+Final copy-led pass aligning every prayer-related surface with the household-level rhythm model established in v0.11. The word "streak" no longer appears in Patria.
+
+- **Dashboard snapshot tile:** `Prayer streak · 6` → **`Prayer rhythm · 6 / 7`**. Same numeric calmness as the neighbouring `Open tasks` and `Members` tiles; no big "scoreboard" 5xl numeral.
+- **Dashboard prayer panel:** the 5xl `{streak_days} day streak` headline + "X prayers logged · last 7 days" line was replaced with a calm two-line reflection:
+  > *"Prayer recorded on 6 of the last 7 days."*
+  > *A household rhythm taking shape.*
+  Zero-state copy: *"The household prayer rhythm is ready to begin again. Open the Prayer Rhythm tab when the family is ready."* — no harsh "0 streak" framing.
+- **Family Council weekly review:** `"Prayers logged"` → **`"Household prayer moments"`**. Chose the shorter approved alternative because the preferred phrase *"Times the household prayed together"* (35 char) would wrap to 3 lines inside the uppercase font-mono 3-column ReviewStat strip while the sibling labels stay 1 line. Visual rhythm preserved; meaning aligned with the household model.
+- **Backend (additive):** new field `prayer.days_with_prayer_last_7` on `/api/dashboard` — distinct days in the last 7 with at least one prayer log. Computed via `db.prayer_logs.distinct("log_date", ...)`. Existing `streak_days` and `week_count` fields are preserved (unused by the UI but retained to avoid a breaking API change in this copy-led pass).
+- **No other surfaces touched.** Spiritual Life Prayer Rhythm tab unchanged, challenges unchanged, goals unchanged, budgets unchanged.
+- **Tests:** all 168 backend tests still green. No new test added since the `prayer.streak_days` API contract is unchanged; new field is additive.
+
 ### v0.11 — Household-level prayer rhythm (Feb 13, 2026)
 Spiritual Life pivoted away from per-member prayer tracking toward household-level prayer rhythm visibility. Patria should not feel like a spiritual-compliance dashboard.
 

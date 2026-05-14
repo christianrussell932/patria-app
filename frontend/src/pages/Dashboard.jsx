@@ -63,7 +63,7 @@ export default function Dashboard() {
           </div>
 
           <div className="flex flex-wrap items-end gap-x-10 gap-y-3">
-            <Snapshot value={prayer.streak_days} label="Prayer streak" />
+            <Snapshot value={`${prayer.days_with_prayer_last_7 ?? 0} / 7`} label="Prayer rhythm" />
             <Snapshot value={tasks.open_count} label="Open tasks" />
             <Snapshot value={data.members_count} label="Members" />
           </div>
@@ -203,18 +203,32 @@ export default function Dashboard() {
           )}
         </Panel>
 
-        {/* Prayer */}
+        {/* Prayer — household rhythm visibility, not a streak counter */}
         <Panel
           testId="dashboard-prayer-panel"
           className="lg:col-span-4"
           label="Family prayer"
           action={<Link to="/spiritual" className="text-xs text-muted-foreground hover:text-foreground" data-testid="dashboard-prayer-link">Open →</Link>}
         >
-          <div className="flex items-baseline gap-3 mb-1">
-            <span className="font-serif text-5xl tracking-tighter">{prayer.streak_days}</span>
-            <span className="font-mono text-xs text-muted-foreground">day streak</span>
-          </div>
-          <div className="text-xs text-muted-foreground">{prayer.week_count} prayers logged · last 7 days</div>
+          {(prayer.days_with_prayer_last_7 ?? 0) === 0 ? (
+            <div data-testid="dashboard-prayer-empty">
+              <p className="font-serif text-2xl leading-snug mb-2">
+                The household prayer rhythm is ready to begin again.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Open the Prayer Rhythm tab when the family is ready.
+              </p>
+            </div>
+          ) : (
+            <div data-testid="dashboard-prayer-rhythm">
+              <p className="font-serif text-2xl leading-snug mb-2">
+                Prayer recorded on <span className="font-semibold">{prayer.days_with_prayer_last_7}</span> of the last 7 days.
+              </p>
+              <p className="text-xs text-muted-foreground italic">
+                A household rhythm taking shape.
+              </p>
+            </div>
+          )}
         </Panel>
 
         {/* Date night */}

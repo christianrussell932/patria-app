@@ -170,7 +170,7 @@ export default function Council() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
         <Panel testId="council-review-panel" className="lg:col-span-7" label="Last week in review">
           <div className="grid grid-cols-3 divide-x divide-border border-y border-border">
-            <ReviewStat label="Prayers logged" value={agenda.last_week.prayer_count} />
+            <ReviewStat label="Household prayer moments" value={agenda.last_week.prayer_count} />
             <ReviewStat label="Rule check-ins" value={agenda.last_week.rule_checkins} />
             <ReviewStat label="Tasks completed" value={agenda.last_week.tasks_completed} />
           </div>

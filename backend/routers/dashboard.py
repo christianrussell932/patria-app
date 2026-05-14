@@ -64,6 +64,13 @@ async def dashboard(h: Household = Depends(get_household)):
     week_prayer_count = await db.prayer_logs.count_documents(
         {"household_id": h.household_id, "log_date": {"$gte": week_start_str}}
     )
+    # v0.12 — Distinct days in the last 7 on which the household prayed at least
+    # once. Used by the Dashboard for the non-streak "X of 7 days" framing.
+    distinct_days = await db.prayer_logs.distinct(
+        "log_date",
+        {"household_id": h.household_id, "log_date": {"$gte": week_start_str}},
+    )
+    days_with_prayer_last_7 = len(distinct_days)
 
     # Budget summary (current month)
     y, m = today.year, today.month
@@ -118,7 +125,11 @@ async def dashboard(h: Household = Depends(get_household)):
             "overdue": tasks_overdue,
             "open_count": len(open_tasks),
         },
-        "prayer": {"streak_days": streak, "week_count": week_prayer_count},
+        "prayer": {
+            "streak_days": streak,
+            "week_count": week_prayer_count,
+            "days_with_prayer_last_7": days_with_prayer_last_7,
+        },
         "budget": {
             "income": income, "expense": expense, "giving": giving,
             "net": income - expense - giving,
