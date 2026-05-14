@@ -73,25 +73,27 @@ export default function Challenges({ embedded = false }) {
                     <div className="h-px bg-border mb-4 relative">
                       <div className={`absolute left-0 top-0 h-px ${liturgicalDot(ch.color)}`} style={{ width: `${ch.completion_pct}%` }} />
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2" data-testid={`challenge-checkins-${ch.challenge_id}`}>
                       {members.map((m) => {
                         const done = ch.completed_today_member_ids?.includes(m.member_id);
-                        const count = ch.member_progress?.[m.member_id] || 0;
                         return (
                           <button
                             key={m.member_id}
                             data-testid={`challenge-checkin-${ch.challenge_id}-${m.member_id}`}
                             onClick={() => checkin(ch, m.member_id)}
+                            aria-label={done ? `Unmark ${m.name} for today` : `Mark ${m.name} as having joined today`}
                             className={`flex items-center gap-2 px-3 py-1.5 text-xs border ${done ? "border-foreground" : "border-border text-muted-foreground"}`}
                           >
                             <span className={`w-5 h-5 flex items-center justify-center text-[10px] font-mono ${memberTileClass(m.color)}`}>{initials(m.name)}</span>
                             <span>{m.name}</span>
-                            <span className="font-mono">{count}</span>
-                            {done && <span>✓</span>}
+                            {done && <span aria-hidden="true">✓</span>}
                           </button>
                         );
                       })}
                     </div>
+                    <p className="mt-3 text-[11px] text-muted-foreground italic">
+                      A season walked together. Mark today&rsquo;s participation; the household arc holds the count.
+                    </p>
                   </div>
                   <button onClick={() => end(ch)} data-testid={`challenge-end-${ch.challenge_id}`} className="text-xs text-muted-foreground hover:text-destructive">End</button>
                 </div>

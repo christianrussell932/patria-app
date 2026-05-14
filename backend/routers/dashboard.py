@@ -46,26 +46,8 @@ async def dashboard(h: Household = Depends(get_household)):
     tasks_due_today = [t for t in open_tasks if t.get("due_date") == today_str]
     tasks_overdue = [t for t in open_tasks if t.get("due_date") and t["due_date"] < today_str]
 
-    # Prayer streak — consecutive days at least one log in household
-    streak = 0
-    cursor_date = today
-    for _ in range(60):
-        cnt = await db.prayer_logs.count_documents(
-            {"household_id": h.household_id, "log_date": cursor_date.isoformat()}
-        )
-        if cnt > 0:
-            streak += 1
-            cursor_date -= timedelta(days=1)
-        else:
-            if cursor_date == today:
-                cursor_date -= timedelta(days=1)
-                continue
-            break
-    week_prayer_count = await db.prayer_logs.count_documents(
-        {"household_id": h.household_id, "log_date": {"$gte": week_start_str}}
-    )
-    # v0.12 — Distinct days in the last 7 on which the household prayed at least
-    # once. Used by the Dashboard for the non-streak "X of 7 days" framing.
+    # Prayer — household rhythm visibility (no streak, no week-count noise).
+    # Distinct days in the last 7 with at least one prayer log.
     distinct_days = await db.prayer_logs.distinct(
         "log_date",
         {"household_id": h.household_id, "log_date": {"$gte": week_start_str}},
@@ -131,8 +113,6 @@ async def dashboard(h: Household = Depends(get_household)):
             "open_count": len(open_tasks),
         },
         "prayer": {
-            "streak_days": streak,
-            "week_count": week_prayer_count,
             "days_with_prayer_last_7": days_with_prayer_last_7,
         },
         "budget": {

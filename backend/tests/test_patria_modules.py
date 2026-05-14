@@ -412,8 +412,13 @@ class TestDashboard:
         for k in ("due_today", "overdue", "open_count"):
             assert k in d["tasks"]
         # prayer
-        assert "streak_days" in d["prayer"]
-        assert "week_count" in d["prayer"]
+        # v0.14 — streak_days and week_count removed; household prayer rhythm
+        # is now expressed solely as distinct days with prayer in the last 7.
+        assert "streak_days" not in d["prayer"], "prayer.streak_days must not be present"
+        assert "week_count" not in d["prayer"], "prayer.week_count must not be present"
+        assert "days_with_prayer_last_7" in d["prayer"]
+        assert isinstance(d["prayer"]["days_with_prayer_last_7"], int)
+        assert 0 <= d["prayer"]["days_with_prayer_last_7"] <= 7
         # budget
         for k in ("income", "expense", "giving", "tithe_pct", "over_categories", "net"):
             assert k in d["budget"]
@@ -425,8 +430,8 @@ class TestDashboard:
 
     def test_dashboard_demo_has_data(self, demo_client):
         d = demo_client.get(f"{API}/dashboard").json()
-        # Demo seeded with prayer logs over last 6 days → week_count > 0
-        assert d["prayer"]["week_count"] >= 1
+        # Demo seeded with prayer logs over last 6 days → household rhythm > 0
+        assert d["prayer"]["days_with_prayer_last_7"] >= 1
         # Demo has 3 members
         assert d["members_count"] >= 3
         # Demo has at least one event coming up (date_night or other)

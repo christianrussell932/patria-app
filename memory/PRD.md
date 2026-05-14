@@ -32,6 +32,24 @@ A structured operating system for intentional Catholic family life. Repositioned
 - **Family Council** → *How are we doing?* (weekly review)
 
 ## Implemented
+### v0.14 — Challenge leaderboard removed + stale prayer fields purged (Feb 13, 2026)
+Closes the pre-beta cleanup arc. Two narrow changes; same single principle.
+
+- **Challenges per-member count removed** (`pages/Challenges.jsx`):
+  - The per-member side-by-side numeric `{count}` on each check-in button is gone. The row now reads as a communal participation grid: `[avatar] [name] [✓ if joined today]`. The check-in mechanism itself, the household-level *Day X / Y*, and the overall progress bar are all preserved (intrinsic to the devotional arc).
+  - A single quiet italic line below the participation row: *"A season walked together. Mark today's participation; the household arc holds the count."*
+  - Backend field `member_progress` was left intact (harmless; may be useful later in a much quieter context); it is no longer surfaced anywhere in the UI.
+  - Dashboard active-season tile was already household-level only — no changes needed there.
+- **Stale prayer API fields purged** (`backend/routers/dashboard.py`):
+  - Removed `prayer.streak_days` and `prayer.week_count` from `/api/dashboard`.
+  - Removed the entire `streak` walk-backward computation (~15 lines) and the `week_prayer_count` query that existed solely to populate those fields. `distinct_days` → `days_with_prayer_last_7` remains as the single canonical household rhythm signal.
+  - Frontend was already migrated to `days_with_prayer_last_7` in v0.12; zero UI changes needed.
+- **Tests** (`backend/tests/test_patria_modules.py`):
+  - `test_dashboard_shape`: replaced presence assertions for `streak_days` / `week_count` with explicit `not in` absence assertions (same pattern as `weekly_score` and `goals.avg_progress` lockouts), plus a positive assertion on `days_with_prayer_last_7` (int, 0–7).
+  - `test_dashboard_demo_has_data`: the `prayer.week_count >= 1` demo assertion was replaced with `days_with_prayer_last_7 >= 1` (equivalent meaning under the new model).
+  - **168/168 backend tests still green.**
+- **Closing the arc:** with v0.14, Patria has fully removed the score → streak → leaderboard chain. The product now offers calm visibility into shared rhythms without any synthetic KPI, comparative count, or duration-of-chain framing anywhere.
+
 ### v0.13 — Onboarding simplified, first-run guidance added (Feb 13, 2026)
 Pre-beta polish reducing first-session friction. Patria's onboarding now matches the calm-before-volume voice established in v0.8–v0.12.
 
