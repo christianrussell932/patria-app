@@ -397,8 +397,11 @@ class TestDashboard:
         # Top-level
         for k in ("household", "liturgical", "today", "todays_events", "upcoming_events",
                   "date_night", "tasks", "prayer", "budget", "active_challenge",
-                  "goals", "members_count"):
+                  "goals", "council", "members_count"):
             assert k in d, f"missing key {k}"
+        # v0.13 — first-run flag for Dashboard Council panel
+        assert "has_held_first_council" in d["council"]
+        assert isinstance(d["council"]["has_held_first_council"], bool)
         # Household Health score was removed in v0.9 — Patria does not grade the family.
         # Weekly reflection now belongs to the Family Council module.
         assert "weekly_score" not in d, "weekly_score must not be present in dashboard response"

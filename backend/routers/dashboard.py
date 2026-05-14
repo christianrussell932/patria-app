@@ -112,6 +112,11 @@ async def dashboard(h: Household = Depends(get_household)):
         {"household_id": h.household_id, "completed": False}, {"_id": 0}
     ).sort("created_at", -1).to_list(20)
 
+    # v0.13 — first-run flag for the Dashboard's Council panel. True once any
+    # council meeting has been created for this household (draft or final).
+    council_meeting_count = await db.meetings.count_documents({"household_id": h.household_id})
+    has_held_first_council = council_meeting_count > 0
+
     return {
         "household": house_doc,
         "members_count": len(members),
@@ -137,6 +142,7 @@ async def dashboard(h: Household = Depends(get_household)):
             "over_categories": over_cats,
         },
         "active_challenge": active_ch,
+        "council": {"has_held_first_council": has_held_first_council},
         "goals": {
             "items": goals[:3], "open_count": len(goals),
         },

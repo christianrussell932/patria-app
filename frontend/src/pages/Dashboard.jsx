@@ -22,8 +22,10 @@ export default function Dashboard() {
   if (!data) return <div className="p-10 text-muted-foreground">Loading…</div>;
 
   const { liturgical: lit, household, todays_events, upcoming_events,
-    date_night, tasks, prayer, budget, active_challenge, goals } = data;
+    date_night, tasks, prayer, budget, active_challenge, goals, council } = data;
   const today = new Date();
+  const missionEmpty = !household?.mission_statement && !(household?.values && household.values.length > 0);
+  const hasHeldFirstCouncil = council?.has_held_first_council ?? true;
 
   return (
     <div className="max-w-7xl mx-auto px-6 md:px-10 py-10 md:py-12" data-testid="dashboard-page">
@@ -70,7 +72,7 @@ export default function Dashboard() {
         </div>
 
         {/* Family Mission & Values — single prominent home (no duplicate card below) */}
-        {(household?.mission_statement || (household?.values && household.values.length > 0)) && (
+        {(household?.mission_statement || (household?.values && household.values.length > 0)) ? (
           <div className="mt-8 pt-6 border-t border-border grid md:grid-cols-12 gap-6 md:gap-10">
             {household?.mission_statement && (
               <div className="md:col-span-7" data-testid="dashboard-mission-line">
@@ -88,6 +90,19 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+          </div>
+        ) : (
+          <div className="mt-8 pt-6 border-t border-border" data-testid="dashboard-mission-empty">
+            <p className="text-sm text-muted-foreground">
+              This household has not yet named its mission.{" "}
+              <Link
+                to="/mission"
+                className="underline-offset-4 hover:underline text-foreground"
+                data-testid="dashboard-mission-empty-link"
+              >
+                Begin in Mission &amp; Goals →
+              </Link>
+            </p>
           </div>
         )}
       </header>
@@ -133,20 +148,41 @@ export default function Dashboard() {
           )}
         </Panel>
 
-        {/* This week's Council — promoted to top-right, where the score used to live */}
+        {/* This week's Council — first-run variant when the household has never met yet */}
         <Panel
           testId="dashboard-council-panel"
           className="lg:col-span-5"
-          label="This week's council"
+          label={hasHeldFirstCouncil ? "This week's council" : "Family Council"}
           action={<Link to="/council" className="text-xs text-muted-foreground hover:text-foreground" data-testid="dashboard-council-link">Open →</Link>}
         >
-          <p className="font-serif text-lg leading-snug mb-2">
-            Twenty quiet minutes, once a week.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Patria has composed an agenda from the last seven days. Open it together when the
-            household is gathered.
-          </p>
+          {hasHeldFirstCouncil ? (
+            <>
+              <p className="font-serif text-lg leading-snug mb-2">
+                Twenty quiet minutes, once a week.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Patria has composed an agenda from the last seven days. Open it together when the
+                household is gathered.
+              </p>
+            </>
+          ) : (
+            <div data-testid="dashboard-council-firstrun">
+              <p className="font-serif text-lg leading-snug mb-3">
+                This household has not yet held its first Family Council.
+              </p>
+              <p className="text-sm text-muted-foreground mb-4">
+                When you are ready — perhaps Sunday evening — gather, open Patria,
+                and begin the week together.
+              </p>
+              <Link
+                to="/council"
+                data-testid="dashboard-council-firstrun-cta"
+                className="inline-block bg-primary text-primary-foreground px-4 py-2 text-sm"
+              >
+                Prepare our first meeting →
+              </Link>
+            </div>
+          )}
         </Panel>
 
         {/* Tasks due */}

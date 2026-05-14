@@ -32,6 +32,22 @@ A structured operating system for intentional Catholic family life. Repositioned
 - **Family Council** → *How are we doing?* (weekly review)
 
 ## Implemented
+### v0.13 — Onboarding simplified, first-run guidance added (Feb 13, 2026)
+Pre-beta polish reducing first-session friction. Patria's onboarding now matches the calm-before-volume voice established in v0.8–v0.12.
+
+- **Onboarding collapsed from 3 screens → 2** (`pages/Onboarding.jsx`):
+  - **Screen 1 — Household identity:** household name + liturgical calendar (3 options each with a one-line hint). Patron saint **removed** — deferred to the Members page.
+  - **Screen 2 — Who walks with you:** parent display name pre-filled from `useAuth().user?.name`, optional member rows with explicit *"Add members later"* skip path next to *"Establish household →"*, and a single italic line introducing Family Council: *"Patria begins with one weekly habit: a brief Family Council. Once you enter, we'll help you prepare the first one."* Parent tile color picker **removed** — deferred (defaults to violet server-side; user repaints on Members).
+  - Pacing indicator: `01 / 02` (was `01 / 03`).
+- **Dashboard first-run states** (`pages/Dashboard.jsx`):
+  - Mission empty-state: when both `mission_statement` and `values` are absent, a calm single-sentence prompt + link to `/mission` (`dashboard-mission-empty`).
+  - Council panel first-run variant: when no meeting has ever been held, panel becomes *"This household has not yet held its first Family Council."* + *"Prepare our first meeting →"* CTA. Reverts to the established *"Twenty quiet minutes…"* copy after the first meeting is created.
+- **Council page first-run alignment** (`pages/Council.jsx`): the existing empty-state branches on `meetings.length === 0` and uses the same first-run language for visual coherence Dashboard → Council. After the first meeting, falls back to the canonical *"The agenda for this week is composed."*
+- **Members patron-saint affordance** (`pages/Household.jsx`): below the household name, an understated inline editor — if unset, an italic *"+ Name a household patron saint (optional)"* link; if set, the existing *"under the patronage of …"* line gains an *"edit"* control. Uses `PATCH /household` (already in the schema). No new endpoint.
+- **Backend (additive, non-breaking)**: `dashboard.council.has_held_first_council` boolean added to `/api/dashboard`. Powered by `db.meetings.count_documents`. No schema migration; no other endpoint touched.
+- **Tests:** `test_dashboard_shape` now asserts `"council"` is present and `"has_held_first_council"` is a bool. **No standalone minimal-create test added** — `HouseholdCreate` Pydantic model already enforces `name: str` (required) and all other fields as Optional-with-defaults; the contract is locked at the model layer. Existing test_create_household covers the superset, existing test_patch_household covers later patching of deferred fields.
+- **Deferral re-entry map honored**: patron saint → Members; tile color → Members per-row picker; mission/values/tech-policy/roles → MissionGoals (existing); Council day/time → never asked, replaced by Dashboard first-run CTA.
+
 ### v0.12 — Removed "prayer streak" framing (Feb 13, 2026)
 Final copy-led pass aligning every prayer-related surface with the household-level rhythm model established in v0.11. The word "streak" no longer appears in Patria.
 

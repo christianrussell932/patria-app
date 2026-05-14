@@ -360,12 +360,41 @@ export default function Council() {
         </>
       ) : (
         <div className="border border-dashed border-border p-10 text-center text-sm text-muted-foreground" data-testid="council-empty-state">
-          The agenda for this week is composed.
-          <div className="mt-3">
-            <button onClick={startMeeting} disabled={creating} data-testid="council-empty-begin-button" className="bg-primary text-primary-foreground px-5 py-2 text-sm">
-              Begin the meeting →
-            </button>
-          </div>
+          {meetings.length === 0 ? (
+            <>
+              <p className="font-serif text-lg text-foreground mb-2">
+                This household has not yet held its first Family Council.
+              </p>
+              <p className="max-w-md mx-auto leading-relaxed">
+                When you are ready — perhaps Sunday evening — gather, open Patria,
+                and begin the week together. Patria has already composed the first agenda.
+              </p>
+              <div className="mt-4">
+                <button
+                  onClick={startMeeting}
+                  disabled={creating}
+                  data-testid="council-empty-begin-button"
+                  className="bg-primary text-primary-foreground px-5 py-2 text-sm disabled:opacity-50"
+                >
+                  {creating ? "Preparing…" : "Prepare our first meeting →"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              The agenda for this week is composed.
+              <div className="mt-3">
+                <button
+                  onClick={startMeeting}
+                  disabled={creating}
+                  data-testid="council-empty-begin-button"
+                  className="bg-primary text-primary-foreground px-5 py-2 text-sm disabled:opacity-50"
+                >
+                  {creating ? "Preparing…" : "Begin the meeting →"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 

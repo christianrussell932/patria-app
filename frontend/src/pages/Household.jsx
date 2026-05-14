@@ -12,6 +12,9 @@ export default function Members() {
   const [household, setHousehold] = useState(null);
   const [members, setMembers] = useState([]);
   const [draft, setDraft] = useState({ name: "", role: "child", color: "green", patron_saint: "" });
+  const [patronEdit, setPatronEdit] = useState(false);
+  const [patronDraft, setPatronDraft] = useState("");
+  const [savingPatron, setSavingPatron] = useState(false);
 
   const refresh = async () => {
     try {
@@ -55,12 +58,58 @@ export default function Members() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 md:px-12 py-10 md:py-12" data-testid="members-page">
-      <header className="border-b border-border pb-6 mb-10">
+      <header className="border-b border-border pb-6 mb-10" data-testid="members-header">
         <div className="overline mb-2">Members</div>
         <h1 className="font-serif text-4xl md:text-5xl tracking-tighter">{household?.name || "—"}</h1>
-        {household?.patron_saint && (
-          <div className="mt-2 italic text-muted-foreground">under the patronage of {household.patron_saint}</div>
-        )}
+        <div className="mt-2 text-sm">
+          {patronEdit ? (
+            <div className="flex flex-wrap items-center gap-3" data-testid="members-patron-edit-row">
+              <input
+                data-testid="members-patron-saint-input"
+                className="bg-transparent border-b border-border focus:border-foreground outline-none py-1 text-sm italic"
+                placeholder="e.g. St. Joseph"
+                value={patronDraft}
+                onChange={(e) => setPatronDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") savePatronSaint(); }}
+                autoFocus
+              />
+              <button
+                data-testid="members-patron-save-button"
+                onClick={savePatronSaint}
+                disabled={savingPatron}
+                className="text-xs border border-border px-3 py-1 hover:bg-secondary disabled:opacity-50"
+              >
+                {savingPatron ? "Saving…" : "Save"}
+              </button>
+              <button
+                onClick={() => { setPatronEdit(false); setPatronDraft(household?.patron_saint || ""); }}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : household?.patron_saint ? (
+            <div className="italic text-muted-foreground" data-testid="members-patron-display">
+              under the patronage of {household.patron_saint}
+              {" · "}
+              <button
+                data-testid="members-patron-edit-button"
+                onClick={() => { setPatronDraft(household.patron_saint || ""); setPatronEdit(true); }}
+                className="not-italic text-xs underline-offset-4 hover:underline"
+              >
+                edit
+              </button>
+            </div>
+          ) : (
+            <button
+              data-testid="members-patron-add-button"
+              onClick={() => { setPatronDraft(""); setPatronEdit(true); }}
+              className="text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline italic"
+            >
+              + Name a household patron saint (optional)
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Mission identity — full width now that the score panel is gone */}
