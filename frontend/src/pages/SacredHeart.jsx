@@ -67,8 +67,14 @@ export default function SacredHeart() {
             within the household, and consecrate their life together to His care.
           </p>
         </div>
-        <div className="md:col-span-5 flex justify-center text-foreground/80">
-          <SacredHeartEngraving size={220} />
+        <div className="md:col-span-5 flex justify-center">
+          <img
+            src="/sacred-heart.png"
+            alt="Sacred Heart of Jesus"
+            data-testid="sacred-heart-hero-image"
+            className="block h-56 md:h-64 w-auto select-none"
+            draggable={false}
+          />
         </div>
       </header>
 
