@@ -137,6 +137,53 @@ class TestHousehold:
         ids = [m["member_id"] for m in r3.json()["members"]]
         assert mid not in ids
 
+    def test_first_charter_endpoint(self, auth_client):
+        """v0.15 — onboarding 'First Rule of the Home' charter persists answers
+        AND creates a council-type schedule event for the chosen day/time."""
+        payload = {
+            "drift_areas": ["schedules", "prayer"],
+            "peace_to_protect": "evenings",
+            "first_household_rule": "council_sunday",
+            "first_council_at": "2026-12-13T19:00",
+        }
+        r = auth_client.post(f"{API}/household/first-charter", json=payload)
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["ok"] is True
+        assert body["event_id"] and body["event_id"].startswith("evt_")
+
+        # Household fields persisted
+        h = auth_client.get(f"{API}/household/me").json()["household"]
+        assert h["drift_areas"] == ["schedules", "prayer"]
+        assert h["peace_to_protect"] == "evenings"
+        assert h["first_household_rule"] == "council_sunday"
+        assert h["first_council_at"] == "2026-12-13T19:00"
+        assert h.get("first_charter_completed_at"), "completion timestamp not set"
+
+        # Council schedule event created and visible via the events endpoint
+        ev = auth_client.get(
+            f"{API}/schedule/events",
+            params={"start": "2026-12-13", "end": "2026-12-13"},
+        ).json()["events"]
+        council_ev = [e for e in ev if e["type"] == "council"]
+        assert len(council_ev) >= 1
+        assert council_ev[0]["title"] == "Family Council"
+        assert council_ev[0]["event_time"] == "19:00"
+
+    def test_first_charter_without_council_datetime(self, auth_client):
+        """Charter can be saved without scheduling — no event row gets created."""
+        r = auth_client.post(f"{API}/household/first-charter", json={
+            "drift_areas": ["technology"],
+            "peace_to_protect": "sunday",
+            "first_household_rule": "dinner_night",
+            "first_council_at": None,
+        })
+        assert r.status_code == 200
+        assert r.json()["event_id"] is None
+        h = auth_client.get(f"{API}/household/me").json()["household"]
+        assert h["peace_to_protect"] == "sunday"
+        assert h["first_household_rule"] == "dinner_night"
+
 
 # ---------------- Rules ----------------
 class TestRules:

@@ -32,6 +32,33 @@ A structured operating system for intentional Catholic family life. Repositioned
 - **Family Council** → *How are we doing?* (weekly review)
 
 ## Implemented
+### v0.15 — "Build your First Rule of the Home" onboarding (Feb 13, 2026)
+The first net-addition after the long subtraction arc (v0.8–v0.14). Onboarding becomes a guided 8-step charter-building experience while preserving every existing v0.13 step and auth/family-creation guarantee.
+
+- **Onboarding extended 2 → 8 steps** (`pages/Onboarding.jsx`):
+  - **Steps 1–2 preserved verbatim** from v0.13 (household name + calendar; parent + optional members). Household creation still happens at the step-2→3 boundary — same `POST /household` + member loops, same data flow. After creation, advancing further only PATCHes.
+  - **Step 3 — "Where is your household drifting?"** — multi-select examen across 7 areas (Schedules, Prayer rhythm, Household responsibilities, Couple alignment, Family priorities, Technology boundaries, Stewardship). Each with a one-line reflective gloss.
+  - **Step 4 — "What peace are you trying to protect?"** — single-select across 6 framings (Peaceful evenings, Sunday rest, Family prayer, Less schedule chaos, Clearer responsibilities, Less spouse friction).
+  - **Step 5 — "Choose your first household rule"** — single-select across 4 starter rules (weekly Sunday Council · protected dinner night · priorities-before-yes · shared spiritual rhythm).
+  - **Step 6 — "Draft your Rule of the Home"** — deterministic template-generated draft prose, no AI. Computed via `buildDraft()` from prior answers.
+  - **Step 7 — "Schedule your first Family Council"** — date + time pickers, pre-filled to upcoming Sunday at 7 PM. The activation goal of onboarding.
+  - **Step 8 — Charter card** — a calm, editorial visual artifact showing household name, drift areas, peace, first rule, scheduled Council time, and the prose charter draft. *"Enter Patria →"* closes the flow.
+  - **Skip semantics:** every charter step (3–7) has a quiet *"Skip · enter Patria"* link. User can drop out at any moment; the household exists from step 2 onward; charter is purely additive.
+  - **Back navigation preserves all answers** (state lives in the component; no submission until step 7's "Continue →").
+  - Pacing indicator dynamically labels phases: `Setting up the household · 01-02 / 08` → `Build your first Rule of the Home · 03-07 / 08` → `Your First Charter · 08 / 08`.
+  - Mobile responsive throughout (`grid-cols-12` collapses to `cols-sm:1` on narrow viewports; charter card uses `p-6 sm:p-10`).
+- **Backend additions** (additive, non-breaking):
+  - `HouseholdUpdate` Pydantic model extended with 5 Optional fields: `drift_areas`, `peace_to_protect`, `first_household_rule`, `first_council_at`, `first_charter_completed_at`. **No required field changed; no Mongo schema migration.**
+  - **New endpoint `POST /api/household/first-charter`** (`FirstCharter` payload model) — persists all 5 charter fields in a single call AND creates a `council`-type schedule event for the chosen datetime so the first Council appears on Dashboard *Today's schedule / Upcoming events*. Returns `{ok, event_id}`. Skips event creation if `first_council_at` is null.
+  - **Schedule event-type allowlist** widened to include `"council"` (was `family / liturgical / date_night / school / medical / other`). One word added; all existing event creation paths unaffected.
+- **Tests:** 2 new tests in `test_catholic_household_os.py::TestHousehold`:
+  - `test_first_charter_endpoint` — full happy path: charter persists, council event created in `db.events`, surfaces via `GET /schedule/events`.
+  - `test_first_charter_without_council_datetime` — charter persists without scheduling; no event row created. **170/170 backend tests green.**
+- **Auth / dashboard / family creation logic confirmed intact:**
+  - `POST /household` body shape unchanged; existing user objects unchanged; redirect logic unchanged (`requireHousehold && !user.current_household_id`).
+  - Existing households without charter fields render normally everywhere (every field is Optional; every consumer is defensive).
+  - Demo household has no charter fields set; demo Dashboard / Members / Council / Spiritual Life all confirmed unaffected.
+
 ### v0.14 — Challenge leaderboard removed + stale prayer fields purged (Feb 13, 2026)
 Closes the pre-beta cleanup arc. Two narrow changes; same single principle.
 

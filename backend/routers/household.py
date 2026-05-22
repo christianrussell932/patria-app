@@ -27,6 +27,20 @@ class HouseholdUpdate(BaseModel):
     sacred_heart_enthroned_at: Optional[str] = None
     sacred_heart_renewal_at: Optional[str] = None
     sacred_heart_notes: Optional[str] = None
+    # v0.15 — First Rule of the Home onboarding additions
+    drift_areas: Optional[List[str]] = None
+    peace_to_protect: Optional[str] = None
+    first_household_rule: Optional[str] = None
+    first_council_at: Optional[str] = None  # ISO datetime
+    first_charter_completed_at: Optional[str] = None  # set once when charter finalized
+
+
+class FirstCharter(BaseModel):
+    """Atomic payload submitted at the end of the new onboarding charter flow."""
+    drift_areas: List[str] = []
+    peace_to_protect: Optional[str] = None
+    first_household_rule: Optional[str] = None
+    first_council_at: Optional[str] = None  # ISO datetime "YYYY-MM-DDTHH:MM"
 
 
 class MemberCreate(BaseModel):
@@ -72,6 +86,46 @@ async def update_household(payload: HouseholdUpdate, h: Household = Depends(get_
     if update:
         await db.households.update_one({"household_id": h.household_id}, {"$set": update})
     return {"ok": True}
+
+
+@router.post("/household/first-charter")
+async def save_first_charter(payload: FirstCharter, h: Household = Depends(get_household)):
+    """v0.15 — Persists the user's 'First Rule of the Home' charter answers and,
+    if a date/time was selected, creates a `council`-type schedule event so the
+    first Family Council appears in Today / Upcoming on the Dashboard.
+
+    Idempotent in spirit: writing twice updates the household fields and creates
+    an additional event row (caller responsible for not re-submitting)."""
+    update = {
+        "drift_areas": payload.drift_areas,
+        "peace_to_protect": payload.peace_to_protect,
+        "first_household_rule": payload.first_household_rule,
+        "first_council_at": payload.first_council_at,
+        "first_charter_completed_at": now_utc().isoformat(),
+    }
+    await db.households.update_one(
+        {"household_id": h.household_id},
+        {"$set": {k: v for k, v in update.items() if v is not None}},
+    )
+
+    event_id = None
+    if payload.first_council_at:
+        # Accept "YYYY-MM-DDTHH:MM" or "YYYY-MM-DD HH:MM"
+        raw = payload.first_council_at.replace(" ", "T")
+        if "T" in raw:
+            event_date, event_time = raw.split("T", 1)
+            event_time = event_time[:5]
+        else:
+            event_date, event_time = raw, None
+        event_id = make_id("evt")
+        await db.events.insert_one({
+            "event_id": event_id, "household_id": h.household_id,
+            "title": "Family Council", "event_date": event_date, "event_time": event_time,
+            "type": "council", "notes": "First Family Council — established at onboarding.",
+            "member_ids": [], "created_at": now_utc().isoformat(),
+        })
+
+    return {"ok": True, "event_id": event_id}
 
 
 @router.post("/household/members")

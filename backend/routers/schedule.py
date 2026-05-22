@@ -41,7 +41,7 @@ async def list_events(start: Optional[str] = None, end: Optional[str] = None, h:
 
 @router.post("/events")
 async def create_event(payload: EventCreate, h: Household = Depends(get_household)):
-    if payload.type not in ("family", "liturgical", "date_night", "school", "medical", "other"):
+    if payload.type not in ("family", "liturgical", "date_night", "school", "medical", "other", "council"):
         raise HTTPException(status_code=400, detail="invalid event type")
     eid = make_id("evt")
     await db.events.insert_one({
