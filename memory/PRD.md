@@ -32,6 +32,17 @@ A structured operating system for intentional Catholic family life. Repositioned
 - **Family Council** → *How are we doing?* (weekly review)
 
 ## Implemented
+### v0.16 — Permanent /charter page (Feb 13, 2026)
+Small additive feature making the First Household Charter a revisitable artifact instead of a one-shot final-onboarding screen.
+
+- **New shared component** `components/CharterCard.jsx` — extracted verbatim from the v0.15 onboarding step-8 implementation. Exports `CharterCard` (default), `CharterDraft`, `DRIFT_OPTIONS / PEACE_OPTIONS / RULE_OPTIONS`, `buildDraft`, `formatFriendlyDate`, `formatTime`. Print-friendly classes (`print:border-0 print:shadow-none print:p-8`).
+- **Onboarding refactored to import the shared component** — no behavior change. Step-6 draft and step-8 card now render via the shared module. Hint dictionaries (`DRIFT_HINTS / PEACE_HINTS / RULE_HINTS`) kept in Onboarding only, since they belong to the examen, not the artifact.
+- **New page** `pages/Charter.jsx` at route `/charter` (Protected, requireHousehold). Fetches `/api/household/me`; if `first_charter_completed_at` is set → renders `<CharterCard>` with all stored fields, a "Print →" button, and an "Established …" stamp. Otherwise → calm empty-state: *"Your Household Charter has not been created yet."* with `Begin the charter →` (returns to /onboarding) + `Back to dashboard` (passive).
+- **Dashboard entry point** — conditional `[data-testid="dashboard-charter-link"]` "View charter →" link in the page-header rail, rendered ONLY when `household.first_charter_completed_at` exists. Existing households without charter fields see nothing new (no regression).
+- **Printable** — AppShell sidebar and mobile topbar both already carried `print:hidden` (verified). The Charter page header collapses with `print:hidden` on its own controls; the card itself uses `print:border-0 print:shadow-none print:p-8` for clean letter-sized output. Native `window.print()`. No PDF library introduced.
+- **Mobile responsive** — header collapses `flex-wrap`; card padding shifts `p-6 sm:p-10`; charter rows stack naturally on narrow viewports.
+- **No backend changes.** Pure consumer of the v0.15 `/api/household/me` payload, which already returns all 5 charter fields.
+
 ### v0.15 — "Build your First Rule of the Home" onboarding (Feb 13, 2026)
 The first net-addition after the long subtraction arc (v0.8–v0.14). Onboarding becomes a guided 8-step charter-building experience while preserving every existing v0.13 step and auth/family-creation guarantee.
 

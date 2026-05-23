@@ -15,6 +15,7 @@ import Schedule from "@/pages/Schedule";
 import Members from "@/pages/Household";
 import Settings from "@/pages/Settings";
 import Council from "@/pages/Council";
+import Charter from "@/pages/Charter";
 import AppShell from "@/components/AppShell";
 
 function ProtectedRoute({ children, requireHousehold = true }) {
@@ -74,6 +75,7 @@ function AppRouter() {
       <Route path="/schedule" element={<ProtectedRoute><AppShell><Schedule /></AppShell></ProtectedRoute>} />
       <Route path="/members" element={<ProtectedRoute><AppShell><Members /></AppShell></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><AppShell><Settings /></AppShell></ProtectedRoute>} />
+      <Route path="/charter" element={<ProtectedRoute><AppShell><Charter /></AppShell></ProtectedRoute>} />
 
       {/* Legacy redirects */}
       <Route path="/today" element={<Navigate to="/dashboard" replace />} />

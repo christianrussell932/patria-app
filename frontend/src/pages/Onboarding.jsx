@@ -1,9 +1,15 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { explainError } from "@/lib/errors";
 import { useAuth } from "@/lib/auth";
+import CharterCard, {
+  CharterDraft,
+  DRIFT_OPTIONS,
+  PEACE_OPTIONS,
+  RULE_OPTIONS,
+} from "@/components/CharterCard";
 
 const TOTAL_STEPS = 8;
 
@@ -13,37 +19,31 @@ const CALENDAR_OPTIONS = [
   { v: "byzantine",   l: "Byzantine",                hint: "Eastern Catholic calendar (limited support)." },
 ];
 
-const DRIFT_OPTIONS = [
-  { v: "schedules",      l: "Schedules",                  hint: "Calendar pressure and overcommitment." },
-  { v: "prayer",         l: "Prayer rhythm",              hint: "The hours of the day no longer belonging to God." },
-  { v: "responsibilities", l: "Household responsibilities", hint: "Chores, repair, the order of the home." },
-  { v: "couple",         l: "Couple alignment",           hint: "Quiet erosion between spouses." },
-  { v: "priorities",     l: "Family priorities",          hint: "Saying yes too quickly to the wrong things." },
-  { v: "technology",     l: "Technology boundaries",      hint: "Devices governing the family rather than the reverse." },
-  { v: "stewardship",    l: "Stewardship",                hint: "Money, time, and possessions out of right order." },
-];
-
-const PEACE_OPTIONS = [
-  { v: "evenings",       l: "Peaceful evenings",            hint: "A house that quiets after the workday." },
-  { v: "sunday",         l: "Sunday rest",                  hint: "A protected Lord's day, week after week." },
-  { v: "family_prayer",  l: "Family prayer",                hint: "A rhythm the children remember as adults." },
-  { v: "less_chaos",     l: "Less schedule chaos",          hint: "Fewer collisions on the calendar." },
-  { v: "clearer_roles",  l: "Clearer responsibilities",     hint: "Each person knowing the work that is theirs." },
-  { v: "spouse",         l: "Less spouse friction",         hint: "A marriage that breathes more freely." },
-];
-
-const RULE_OPTIONS = [
-  { v: "council_sunday", l: "We hold a Family Council every Sunday evening.",
-    hint: "A twenty-minute weekly look back, look forward, and align." },
-  { v: "dinner_night",   l: "We protect one family dinner night during the week.",
-    hint: "A fixed table, no commitments allowed past its hour." },
-  { v: "priorities_first", l: "We set household priorities before accepting new commitments.",
-    hint: "The yes is given by the family, not by the calendar." },
-  { v: "shared_rhythm",  l: "We keep one shared spiritual rhythm.",
-    hint: "Rosary, Examen, Liturgy of the Hours, or another devotion — kept together." },
-];
-
-const labelByValue = (options, v) => options.find((o) => o.v === v)?.l;
+// Examen hints belong to the onboarding examen — kept here, not in the
+// reusable CharterCard which only renders persisted labels.
+const DRIFT_HINTS = {
+  schedules: "Calendar pressure and overcommitment.",
+  prayer: "The hours of the day no longer belonging to God.",
+  responsibilities: "Chores, repair, the order of the home.",
+  couple: "Quiet erosion between spouses.",
+  priorities: "Saying yes too quickly to the wrong things.",
+  technology: "Devices governing the family rather than the reverse.",
+  stewardship: "Money, time, and possessions out of right order.",
+};
+const PEACE_HINTS = {
+  evenings: "A house that quiets after the workday.",
+  sunday: "A protected Lord's day, week after week.",
+  family_prayer: "A rhythm the children remember as adults.",
+  less_chaos: "Fewer collisions on the calendar.",
+  clearer_roles: "Each person knowing the work that is theirs.",
+  spouse: "A marriage that breathes more freely.",
+};
+const RULE_HINTS = {
+  council_sunday: "A twenty-minute weekly look back, look forward, and align.",
+  dinner_night: "A fixed table, no commitments allowed past its hour.",
+  priorities_first: "The yes is given by the family, not by the calendar.",
+  shared_rhythm: "Rosary, Examen, Liturgy of the Hours, or another devotion — kept together.",
+};
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -302,7 +302,7 @@ export default function Onboarding() {
                   selected={driftAreas.includes(d.v)}
                   onClick={() => toggleDrift(d.v)}
                   label={d.l}
-                  hint={d.hint}
+                  hint={DRIFT_HINTS[d.v]}
                   multi
                 />
               ))}
@@ -334,7 +334,7 @@ export default function Onboarding() {
                   selected={peace === p.v}
                   onClick={() => setPeace(p.v)}
                   label={p.l}
-                  hint={p.hint}
+                  hint={PEACE_HINTS[p.v]}
                 />
               ))}
             </div>
@@ -365,7 +365,7 @@ export default function Onboarding() {
                   selected={firstRule === r.v}
                   onClick={() => setFirstRule(r.v)}
                   label={r.l}
-                  hint={r.hint}
+                  hint={RULE_HINTS[r.v]}
                 />
               ))}
             </div>
@@ -393,6 +393,7 @@ export default function Onboarding() {
               driftAreas={driftAreas}
               peace={peace}
               firstRule={firstRule}
+              testId="onboarding-charter-draft"
             />
             <Footer
               left={<BackBtn onClick={() => setStep(5)} />}
@@ -462,6 +463,7 @@ export default function Onboarding() {
               firstRule={firstRule}
               councilDate={councilDate}
               councilTime={councilTime}
+              testId="onboarding-charter-card"
             />
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pt-8">
               <button
@@ -566,99 +568,4 @@ function SkipLink({ onClick, testId }) {
       className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
     >Skip · enter Patria</button>
   );
-}
-
-const DRIFT_LABEL = Object.fromEntries(DRIFT_OPTIONS.map((d) => [d.v, d.l.toLowerCase()]));
-const PEACE_LABEL = Object.fromEntries(PEACE_OPTIONS.map((p) => [p.v, p.l.toLowerCase()]));
-const RULE_LABEL = Object.fromEntries(RULE_OPTIONS.map((r) => [r.v, r.l]));
-
-function CharterDraft({ name, driftAreas, peace, firstRule }) {
-  const draft = useMemo(() => buildDraft({ name, driftAreas, peace, firstRule }), [name, driftAreas, peace, firstRule]);
-  return (
-    <div className="border border-border bg-secondary/20 p-6 sm:p-8" data-testid="onboarding-charter-draft">
-      <div className="overline mb-3">Rule of the Home — draft</div>
-      <p className="font-serif text-base sm:text-lg leading-relaxed">{draft}</p>
-      <p className="mt-5 text-xs text-muted-foreground italic">
-        Plain words for now. The charter ages with the household.
-      </p>
-    </div>
-  );
-}
-
-function buildDraft({ name, driftAreas, peace, firstRule }) {
-  const houseName = name?.trim() || "Our household";
-  const driftText = driftAreas.length === 0
-    ? null
-    : driftAreas.map((v) => DRIFT_LABEL[v]).filter(Boolean).join(", ");
-  const peaceText = peace ? PEACE_LABEL[peace] : null;
-  const ruleText = firstRule ? RULE_LABEL[firstRule] : null;
-
-  const parts = [];
-  if (driftText) parts.push(`${houseName} is drifting most in: ${driftText}.`);
-  if (peaceText) parts.push(`The peace we are trying to protect is ${peaceText}.`);
-  if (ruleText) parts.push(`Our first Rule of the Home: ${ruleText}`);
-  parts.push("We will review and refine this together at our first Family Council.");
-  return parts.join(" ");
-}
-
-function CharterCard({ name, driftAreas, peace, firstRule, councilDate, councilTime }) {
-  const draft = useMemo(() => buildDraft({ name, driftAreas, peace, firstRule }), [name, driftAreas, peace, firstRule]);
-  const friendlyDate = formatFriendlyDate(councilDate);
-  return (
-    <div className="border border-border bg-background shadow-sm" data-testid="onboarding-charter-card">
-      <div className="p-6 sm:p-10 border-b border-border">
-        <div className="overline mb-2">First Household Charter</div>
-        <h2 className="font-serif text-3xl sm:text-4xl tracking-tighter leading-tight">
-          {name?.trim() || "The Household"}
-        </h2>
-      </div>
-      <div className="p-6 sm:p-10 space-y-6">
-        <CharterRow
-          label="Areas we will tend"
-          value={driftAreas.length === 0 ? "—" : driftAreas.map((v) => labelByValue(DRIFT_OPTIONS, v)).join(" · ")}
-        />
-        <CharterRow
-          label="The peace we are protecting"
-          value={peace ? labelByValue(PEACE_OPTIONS, peace) : "—"}
-        />
-        <CharterRow
-          label="Our first Rule of the Home"
-          serif
-          value={firstRule ? RULE_LABEL[firstRule] : "—"}
-        />
-        <CharterRow
-          label="First Family Council"
-          serif
-          value={(councilDate && councilTime) ? `${friendlyDate} · ${formatTime(councilTime)}` : "Not yet scheduled"}
-        />
-        <div className="pt-4 border-t border-border">
-          <p className="font-serif text-base leading-relaxed italic text-foreground/90">{draft}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CharterRow({ label, value, serif = false }) {
-  return (
-    <div>
-      <div className="overline mb-1">{label}</div>
-      <div className={serif ? "font-serif text-lg leading-snug" : "text-sm leading-relaxed"}>{value}</div>
-    </div>
-  );
-}
-
-function formatFriendlyDate(iso) {
-  if (!iso) return "";
-  try {
-    const d = new Date(iso + "T12:00:00");
-    return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-  } catch { return iso; }
-}
-function formatTime(hhmm) {
-  if (!hhmm) return "";
-  const [h, m] = hhmm.split(":").map(Number);
-  const ampm = h >= 12 ? "PM" : "AM";
-  const h12 = ((h + 11) % 12) + 1;
-  return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
 }

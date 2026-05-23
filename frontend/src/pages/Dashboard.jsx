@@ -71,6 +71,18 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {household?.first_charter_completed_at && (
+          <div className="mt-4 text-right" data-testid="dashboard-charter-entry">
+            <Link
+              to="/charter"
+              data-testid="dashboard-charter-link"
+              className="text-xs font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+            >
+              View charter →
+            </Link>
+          </div>
+        )}
+
         {/* Family Mission & Values — single prominent home (no duplicate card below) */}
         {(household?.mission_statement || (household?.values && household.values.length > 0)) ? (
           <div className="mt-8 pt-6 border-t border-border grid md:grid-cols-12 gap-6 md:gap-10">
