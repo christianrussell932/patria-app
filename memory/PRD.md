@@ -32,6 +32,23 @@ A structured operating system for intentional Catholic family life. Repositioned
 - **Family Council** → *How are we doing?* (weekly review)
 
 ## Implemented
+### v0.17 — Charter ↔ Council ritual seam (Feb 13, 2026)
+Small additive UI/copy work knitting the Charter and Family Council surfaces together as two halves of the same household ritual.
+
+- **On `/charter` (when charter is completed):**
+  - Header now shows a quiet `Review at Family Council →` link (font-mono uppercase, muted) beside the existing `Print →` button.
+  - Below the header, a single italic muted line when `first_council_at` is set: *"Your first Council is scheduled for Sunday, December 13 at 7:00 PM."* (formatted via the existing `formatFriendlyDate` + `formatTime`).
+  - Both affordances absent on the empty-state path (`first_charter_completed_at == null`).
+- **On `/council` (when charter is completed):**
+  - New compact reference card above the agenda, 3-column at md+, stacked on mobile:
+    - Left: *Rule of the Home* + italic *"Begin this Council by remembering the peace your household is trying to protect."*
+    - Middle: the rule itself in serif (e.g. *"We hold a Family Council every Sunday evening."*) + a small *"The peace we are protecting: peaceful evenings."* subline if both are set.
+    - Right: `View Charter →` link.
+  - Conditionally rendered: `{household?.first_charter_completed_at && (…)}`. Households without a charter see Council exactly as before — no card, no copy, no broken data.
+- **Architecture:**
+  - Council now also stores `household` from its existing `/household/me` call (previously kept only members). Zero new API calls; zero new endpoints; zero schema changes.
+  - Imports `RULE_OPTIONS` and `PEACE_OPTIONS` from the shared `components/CharterCard` to label-format stored values — no duplicate option lists.
+
 ### v0.16 — Permanent /charter page (Feb 13, 2026)
 Small additive feature making the First Household Charter a revisitable artifact instead of a one-shot final-onboarding screen.
 

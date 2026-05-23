@@ -9,7 +9,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { explainError } from "@/lib/errors";
-import CharterCard from "@/components/CharterCard";
+import CharterCard, { formatFriendlyDate, formatTime } from "@/components/CharterCard";
 
 export default function Charter() {
   const navigate = useNavigate();
@@ -35,6 +35,9 @@ export default function Charter() {
   const [councilDate, councilTime] = household?.first_council_at
     ? household.first_council_at.split("T")
     : [null, null];
+  const friendlyCouncilWhen = (councilDate && councilTime)
+    ? `${formatFriendlyDate(councilDate)} at ${formatTime(councilTime.slice(0, 5))}`
+    : null;
 
   return (
     <div className="max-w-3xl mx-auto px-6 md:px-12 py-10 md:py-16" data-testid="charter-page">
@@ -46,15 +49,33 @@ export default function Charter() {
           </h1>
         </div>
         {completed && (
-          <button
-            data-testid="charter-print-button"
-            onClick={() => window.print()}
-            className="text-sm border border-border px-4 py-2 hover:bg-secondary"
-          >
-            Print →
-          </button>
+          <div className="flex items-center gap-5">
+            <Link
+              to="/council"
+              data-testid="charter-review-council-link"
+              className="text-xs font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+            >
+              Review at Family Council →
+            </Link>
+            <button
+              data-testid="charter-print-button"
+              onClick={() => window.print()}
+              className="text-sm border border-border px-4 py-2 hover:bg-secondary"
+            >
+              Print →
+            </button>
+          </div>
         )}
       </header>
+
+      {completed && friendlyCouncilWhen && (
+        <p
+          className="mb-6 text-sm text-muted-foreground italic print:hidden"
+          data-testid="charter-first-council-line"
+        >
+          Your first Council is scheduled for {friendlyCouncilWhen}.
+        </p>
+      )}
 
       {completed ? (
         <div data-testid="charter-completed">

@@ -1,16 +1,22 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { explainError } from "@/lib/errors";
 import Panel from "@/components/Panel";
 import { CrestDivider } from "@/components/Crest";
 import { initials, memberTileClass, formatCivilDate, liturgicalDot, liturgicalText } from "@/lib/liturgical";
+import { RULE_OPTIONS, PEACE_OPTIONS } from "@/components/CharterCard";
+
+const RULE_LABEL  = Object.fromEntries(RULE_OPTIONS.map((r)  => [r.v, r.l]));
+const PEACE_LABEL = Object.fromEntries(PEACE_OPTIONS.map((p) => [p.v, p.l.toLowerCase()]));
 
 export default function Council() {
   const [agenda, setAgenda] = useState(null);
   const [meetings, setMeetings] = useState([]);
   const [meeting, setMeeting] = useState(null);
   const [members, setMembers] = useState([]);
+  const [household, setHousehold] = useState(null);
   const [creating, setCreating] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
 
@@ -32,6 +38,7 @@ export default function Council() {
       setAgenda(a.data);
       setMeetings(ms.data.meetings);
       setMembers(hm.data.members);
+      setHousehold(hm.data.household);
 
       // If there's a draft meeting for current week, open it
       const draft = ms.data.meetings.find((m) => m.status === "draft" && m.week_start === a.data.week_start);
@@ -165,6 +172,48 @@ export default function Council() {
           )}
         </div>
       </div>
+
+      {/* Rule of the Home — quiet reference to the household's charter */}
+      {household?.first_charter_completed_at && (
+        <div
+          className="mb-8 border border-border bg-secondary/20 p-5 sm:p-6 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start"
+          data-testid="council-charter-reference"
+        >
+          <div className="md:col-span-3">
+            <div className="overline mb-1">Rule of the Home</div>
+            <p className="text-xs text-muted-foreground italic leading-relaxed">
+              Begin this Council by remembering the peace your household is trying to protect.
+            </p>
+          </div>
+          <div className="md:col-span-7">
+            {household.first_household_rule && RULE_LABEL[household.first_household_rule] && (
+              <p
+                className="font-serif text-lg md:text-xl leading-snug"
+                data-testid="council-charter-rule"
+              >
+                &ldquo;{RULE_LABEL[household.first_household_rule]}&rdquo;
+              </p>
+            )}
+            {household.peace_to_protect && PEACE_LABEL[household.peace_to_protect] && (
+              <p
+                className="mt-2 text-xs text-muted-foreground"
+                data-testid="council-charter-peace"
+              >
+                The peace we are protecting: {PEACE_LABEL[household.peace_to_protect]}.
+              </p>
+            )}
+          </div>
+          <div className="md:col-span-2 md:text-right">
+            <Link
+              to="/charter"
+              data-testid="council-charter-link"
+              className="text-xs font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+            >
+              View Charter →
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Agenda — last week / look ahead */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
